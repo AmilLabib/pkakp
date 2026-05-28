@@ -1,26 +1,77 @@
 @import "tailwindcss";
 
+/* Preserve small set of CSS variables and font-face used by Next fonts */
 :root {
   --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
     --background: #0a0a0a;
-    --foreground: #ededed;
   }
 }
 
 body {
   background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+}
+
+@font-face {
+  font-family: "Montaser";
+  src: url("/public/fonts/Montaser.woff") format("woff");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* small helpers for component-specific pieces that are verbose in utilities */
+.radial-navbar {
+  background: radial-gradient(
+    circle at 0% 50%,
+    #f4c42e 0%,
+    rgba(244, 196, 46, 0) 12.5%,
+    #3b8e82 100%
+  );
+}
+
+.hero-bg {
+  background-image: url("/hero.png");
+  background-size: cover;
+  background-position: center;
+}
+
+.section-teal {
+  background: linear-gradient(180deg, #1f8f88 0%, #1d7f79 100%);
+}
+
+.article-thumb,
+.achievement-thumb {
+  background-image: linear-gradient(
+    180deg,
+    #d8f0ff 0%,
+    #f7fcff 38%,
+    #cfe98f 70%,
+    #95bf4f 100%
+  );
+}
+
+.achievement-card {
+  border-radius: 10px;
+}
+
+.font-poppins {
+  font-family: var(--font-poppins), sans-serif;
+}
+
+.font-montserrat {
+  font-family: var(--font-montserrat), sans-serif;
+}
+
+.font-helvetica {
+  font-family: Helvetica, Arial, sans-serif;
+}
+
+/* Hide global header and footer when a page requests a simplified layout */
+body.no-navbar header,
+body.no-navbar footer {
+  display: none !important;
 }
