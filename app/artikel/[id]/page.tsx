@@ -1,20 +1,44 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import FooterSection from "../../components/FooterSection";
-import { articles } from "../../data/articles";
+import { fetchArticles } from "../../../lib/supabaseClient";
+
+type Article = { title: string; desc: string; date: string; image: string };
 
 export default function ArticleDetailPage() {
   const params = useParams();
   const idStr = params?.id as string | undefined;
   const id = idStr ? Number(idStr) : NaN;
 
+  const [articles, setArticles] = useState<Article[]>([]);
+  useEffect(() => {
+    (async () => {
+      try {
+        const { data, error } = await fetchArticles();
+        if (!error && data) {
+          const mapped = data.map((d: any) => ({
+            title: d.title || "",
+            desc: d.desc || "",
+            date: d.created_at
+              ? new Date(d.created_at).toLocaleDateString()
+              : "",
+            image: d.image || "",
+          }));
+          setArticles(mapped);
+        }
+      } catch (e) {
+        // ignore
+      }
+    })();
+  }, []);
+
   const article = useMemo(() => {
     if (!Number.isFinite(id)) return undefined;
     return articles[id];
-  }, [id]);
+  }, [id, articles]);
 
   if (!article) {
     return (

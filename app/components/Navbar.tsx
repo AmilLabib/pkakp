@@ -3,10 +3,12 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
 
 export default function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isTentangOpen, setIsTentangOpen] = useState(false);
+  const pathname = usePathname();
 
   useEffect(() => {
     const onScroll = () => {
@@ -19,6 +21,7 @@ export default function Navbar() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
+  const shouldShowBackground = isScrolled || pathname !== "/";
   const closeTentangMenu = () => setIsTentangOpen(false);
   const openTentangMenu = () => setIsTentangOpen(true);
   const toggleTentangMenu = () => setIsTentangOpen((prev) => !prev);
@@ -26,10 +29,10 @@ export default function Navbar() {
   return (
     <header
       className={`fixed top-0 left-0 z-50 w-full h-16 md:h-20 px-4 md:px-8 transition-all duration-300 ${
-        isScrolled ? "shadow-md" : "shadow-none"
+        shouldShowBackground ? "shadow-md" : "shadow-none"
       }`}
       style={
-        isScrolled
+        shouldShowBackground
           ? {
               backgroundImage: "url('/navbar-bg.png')",
               backgroundSize: "cover",

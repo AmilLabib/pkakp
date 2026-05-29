@@ -1,8 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
+import { motion } from "framer-motion";
 import ArticleCard, { type Article } from "./ArticleCard";
+
+const easeOut = [0.22, 1, 0.36, 1] as const;
 
 const articles: Article[] = [
   {
@@ -71,6 +75,7 @@ const articles: Article[] = [
 ];
 
 export default function ArticlesSection() {
+  const router = useRouter();
   const [itemsPerView, setItemsPerView] = useState(1);
   const [index, setIndex] = useState(0);
 
@@ -107,17 +112,25 @@ export default function ArticlesSection() {
   return (
     <section id="artikel" className="bg-[#3b8e82] py-10 md:py-12 px-8">
       <div className="mx-auto px-4 md:px-12">
-        <h2 className="text-3xl md:text-4xl font-extrabold text-[#171b23] mb-6 ml-10">
+        <motion.h2
+          className="text-3xl md:text-4xl font-extrabold text-[#171b23] mb-6 ml-10"
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, amount: 0.4 }}
+          transition={{ duration: 0.6, ease: easeOut }}
+        >
           Artikel
-        </h2>
+        </motion.h2>
 
         <div className="relative px-5">
           <div className="overflow-hidden">
-            <div
+            <motion.div
               className="flex transition-transform duration-500 ease-out"
-              style={{
-                transform: `translateX(-${index * (100 / itemsPerView)}%)`,
-              }}
+              animate={{ x: `-${index * (100 / itemsPerView)}%` }}
+              initial={{ opacity: 0, y: 16 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, amount: 0.25 }}
+              transition={{ duration: 0.6, ease: easeOut, delay: 0.1 }}
             >
               {articles.map((article) => (
                 <div
@@ -127,7 +140,7 @@ export default function ArticlesSection() {
                   <ArticleCard article={article} />
                 </div>
               ))}
-            </div>
+            </motion.div>
           </div>
 
           {articles.length > itemsPerView && (
@@ -152,11 +165,24 @@ export default function ArticlesSection() {
           )}
         </div>
 
-        <div className="mt-7 flex justify-center w-full">
-          <button className="font-poppins rounded-full bg-[#f2c22e] text-[#143434] font-bold w-1/2 px-10 py-2.5 hover:brightness-95 transition">
+        <motion.div
+          className="mt-7 flex justify-center w-full"
+          initial={{ opacity: 0, y: 16 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, amount: 0.35 }}
+          transition={{ duration: 0.55, ease: easeOut, delay: 0.1 }}
+        >
+          <motion.button
+            type="button"
+            onClick={() => router.push("/artikel")}
+            className="font-poppins rounded-full bg-[#f2c22e] text-[#143434] font-bold w-1/2 px-10 py-2.5 hover:brightness-95 transition cursor-pointer"
+            whileHover={{ scale: 1.03 }}
+            whileTap={{ scale: 0.98 }}
+            transition={{ duration: 0.2, ease: easeOut }}
+          >
             LIHAT SELENGKAPNYA
-          </button>
-        </div>
+          </motion.button>
+        </motion.div>
       </div>
     </section>
   );

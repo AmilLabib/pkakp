@@ -1,6 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import {
+  fetchMembers,
+  insertMember,
+  deleteMember,
+  uploadMemberPhoto,
+} from "../../../lib/supabaseClient";
 
 type Pengurus = { id: string; name: string; role: string; image?: string };
 
@@ -13,6 +19,7 @@ export default function AdminPengurus() {
   const [name, setName] = useState("");
   const [role, setRole] = useState("");
   const [image, setImage] = useState<string>("");
+  const [newImageFile, setNewImageFile] = useState<File | null>(null);
 
   const openModal = () => setIsModalOpen(true);
 
@@ -25,11 +32,36 @@ export default function AdminPengurus() {
 
   const add = () => {
     if (!name.trim()) return;
-    setPengurus((s) => [
-      { id: Date.now().toString(), name, role: role || "Anggota", image },
-      ...s,
-    ]);
+    const newItem = {
+      id: Date.now().toString(),
+      name,
+      role: role || "Anggota",
+      image,
+    };
+    setPengurus((s) => [newItem, ...s]);
     closeModal();
+
+    (async () => {
+      try {
+        let photoUrl = newItem.image;
+        if (newImageFile) {
+          const up = await uploadMemberPhoto(newImageFile);
+          if (up.error) {
+            console.error("uploadMemberPhoto error", up.error);
+          } else {
+            photoUrl = up.data?.publicUrl ?? photoUrl;
+          }
+        }
+        const { data, error } = await insertMember({
+          name: newItem.name,
+          role: newItem.role,
+          photo: photoUrl,
+        });
+        if (error) console.error("insertMember error", error);
+      } catch (e) {
+        console.error("insertMember exception", e);
+      }
+    })();
   };
 
   const onImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -37,10 +69,40 @@ export default function AdminPengurus() {
     if (!file) return;
     const previewUrl = URL.createObjectURL(file);
     setImage(previewUrl);
+    setNewImageFile(file);
   };
 
   const remove = (id: string) =>
     setPengurus((s) => s.filter((x) => x.id !== id));
+
+  const removeRemote = (id: string) => {
+    (async () => {
+      const { data, error } = await deleteMember(id);
+      if (error) console.error("deleteMember error", error);
+    })();
+  };
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const { data, error } = await fetchMembers();
+        if (!error && data && data.length > 0) {
+          const mapped = data.map((d: unknown) => {
+            const r = d as Record<string, unknown>;
+            return {
+              id: r.id ? String(r.id) : Date.now().toString(),
+              name: typeof r.name === "string" ? r.name : "",
+              role: typeof r.role === "string" ? r.role : "",
+              image: typeof r.photo === "string" ? r.photo : "",
+            };
+          });
+          setPengurus(mapped);
+        }
+      } catch (e) {
+        // ignore
+      }
+    })();
+  }, []);
 
   return (
     <section className="py-12">

@@ -1,17 +1,46 @@
+"use client";
+
+import Image from "next/image";
+import { motion } from "framer-motion";
 import FooterSection from "../components/FooterSection";
+
+const fadeUp = {
+  hidden: { opacity: 0, y: 32 },
+  show: { opacity: 1, y: 0 },
+};
 
 export default function ProfilOrganisasiPage() {
   return (
     <main className="w-full overflow-x-hidden bg-white pt-24 md:pt-28">
       <section className="max-w-500 mx-auto px-5 md:px-8">
-        <h1 className="font-montserrat text-5xl md:text-6xl font-extrabold tracking-tight text-black">
+        <motion.h1
+          className="font-montserrat text-5xl md:text-6xl font-extrabold tracking-tight text-black"
+          variants={fadeUp}
+          initial="hidden"
+          whileInView="show"
+          viewport={{ once: true, amount: 0.6 }}
+          transition={{ duration: 0.6, ease: "easeOut" }}
+        >
           PROFIL
-        </h1>
-        <h2 className="mt-2 font-montserrat text-xl md:text-3xl font-extrabold tracking-tight text-black uppercase">
+        </motion.h1>
+        <motion.h2
+          className="mt-2 font-montserrat text-xl md:text-3xl font-extrabold tracking-tight text-black uppercase"
+          variants={fadeUp}
+          initial="hidden"
+          whileInView="show"
+          viewport={{ once: true, amount: 0.6 }}
+          transition={{ duration: 0.6, delay: 0.08, ease: "easeOut" }}
+        >
           Pusat Kajian Akuntansi dan Keuangan Publik
-        </h2>
+        </motion.h2>
 
-        <div className="mt-6 md:mt-8 w-full overflow-hidden rounded-[28px] bg-black">
+        <motion.div
+          className="mt-6 md:mt-8 w-full overflow-hidden rounded-[28px] bg-black"
+          initial={{ opacity: 0, y: 28, scale: 0.98 }}
+          whileInView={{ opacity: 1, y: 0, scale: 1 }}
+          viewport={{ once: true, amount: 0.3 }}
+          transition={{ duration: 0.65, delay: 0.12, ease: "easeOut" }}
+        >
           <iframe
             width="560"
             height="315"
@@ -23,15 +52,57 @@ export default function ProfilOrganisasiPage() {
             referrerPolicy="strict-origin-when-cross-origin"
             allowFullScreen
           />
-        </div>
+        </motion.div>
 
         <div className="mt-8 md:mt-10 grid grid-cols-1 lg:grid-cols-[0.9fr_1.1fr] gap-6 md:gap-8 pb-12">
-          <div className="space-y-5">
-            <div className="h-52 md:h-64 rounded-md bg-[linear-gradient(180deg,#DDF3FF_0%,#EAF8FF_45%,#C8E892_45%,#7FA80A_100%)]" />
-            <div className="h-52 md:h-64 rounded-md bg-[linear-gradient(180deg,#DDF3FF_0%,#EAF8FF_45%,#C8E892_45%,#7FA80A_100%)]" />
-          </div>
+          <motion.div
+            className="space-y-5"
+            initial="hidden"
+            whileInView="show"
+            viewport={{ once: true, amount: 0.35 }}
+            variants={{
+              hidden: {},
+              show: {
+                transition: { staggerChildren: 0.12, delayChildren: 0.1 },
+              },
+            }}
+          >
+            <motion.div
+              className="relative h-52 md:h-64 rounded-md overflow-hidden"
+              variants={fadeUp}
+              transition={{ duration: 0.55, ease: "easeOut" }}
+            >
+              <Image
+                src="/hero.png"
+                alt="Hero PKAKP"
+                fill
+                className="object-cover"
+                sizes="(max-width: 768px) 100vw, 40vw"
+              />
+            </motion.div>
+            <motion.div
+              className="relative h-52 md:h-64 rounded-md overflow-hidden"
+              variants={fadeUp}
+              transition={{ duration: 0.55, ease: "easeOut" }}
+            >
+              <Image
+                src="/tentang.png"
+                alt="Tentang PKAKP"
+                fill
+                className="object-cover"
+                sizes="(max-width: 768px) 100vw, 40vw"
+              />
+            </motion.div>
+          </motion.div>
 
-          <article className="font-poppins text-black">
+          <motion.article
+            className="font-poppins text-black"
+            variants={fadeUp}
+            initial="hidden"
+            whileInView="show"
+            viewport={{ once: true, amount: 0.2 }}
+            transition={{ duration: 0.65, delay: 0.1, ease: "easeOut" }}
+          >
             <h3 className="font-montserrat text-3xl md:text-5xl font-extrabold leading-tight">
               Selayang Pandang PKAKP
             </h3>
@@ -85,7 +156,7 @@ export default function ProfilOrganisasiPage() {
                 dan keuangan publik.
               </p>
             </div>
-          </article>
+          </motion.article>
         </div>
       </section>
 

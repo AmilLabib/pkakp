@@ -1,7 +1,11 @@
 "use client";
 
 import { useRef } from "react";
+import Link from "next/link";
+import { motion } from "framer-motion";
 import AchievementCard from "./AchievementCard";
+
+const easeOut = [0.22, 1, 0.36, 1] as const;
 
 type Achievement = {
   title: string;
@@ -48,12 +52,24 @@ export default function AchievementsSection() {
   return (
     <section id="prestasi" className="bg-white py-10 md:py-12">
       <div className="mx-auto px-5 md:px-24">
-        <h2 className="font-montserrat text-center text-3xl md:text-4xl font-extrabold text-[#0b2f2f]">
+        <motion.h2
+          className="font-montserrat text-center text-3xl md:text-4xl font-extrabold text-[#0b2f2f]"
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, amount: 0.4 }}
+          transition={{ duration: 0.6, ease: easeOut }}
+        >
           Prestasi
-        </h2>
-        <p className="font-poppins text-center text-[#2f4747] mt-1 mb-7">
+        </motion.h2>
+        <motion.p
+          className="font-poppins text-center text-[#2f4747] mt-1 mb-7"
+          initial={{ opacity: 0, y: 16 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, amount: 0.4 }}
+          transition={{ duration: 0.55, ease: easeOut, delay: 0.06 }}
+        >
           Berkontribusi melalui Prestasi, Inovasi, dan Dedikasi
-        </p>
+        </motion.p>
 
         <div
           ref={scrollRef}
@@ -63,22 +79,45 @@ export default function AchievementsSection() {
           onMouseUp={onMouseLeaveOrUp}
           onMouseMove={onMouseMove}
         >
-          <div className="flex gap-4 snap-x snap-mandatory">
+          <motion.div
+            className="flex gap-4 snap-x snap-mandatory"
+            initial={{ opacity: 0, y: 18 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, amount: 0.2 }}
+            transition={{ duration: 0.6, ease: easeOut, delay: 0.08 }}
+          >
             {achievements.map((item, idx) => (
-              <AchievementCard
+              <motion.div
                 key={idx}
-                title={item.title}
-                imageSrc={item.imageSrc}
-              />
+                initial={{ opacity: 0, y: 14 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, amount: 0.2 }}
+                transition={{
+                  duration: 0.45,
+                  ease: easeOut,
+                  delay: 0.06 * (idx + 1),
+                }}
+              >
+                <AchievementCard title={item.title} imageSrc={item.imageSrc} />
+              </motion.div>
             ))}
-          </div>
+          </motion.div>
         </div>
 
-        <div className="mt-6 flex justify-center">
-          <button className="inline-flex items-center gap-2 rounded-full bg-[#1aa9a2] text-white px-6 py-2.5 font-semibold hover:opacity-95 transition">
+        <motion.div
+          className="mt-6 flex justify-center"
+          initial={{ opacity: 0, y: 14 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, amount: 0.4 }}
+          transition={{ duration: 0.5, ease: easeOut, delay: 0.1 }}
+        >
+          <Link
+            href="/prestasi"
+            className="inline-flex items-center gap-2 rounded-full bg-[#1aa9a2] text-white px-6 py-2.5 font-semibold hover:opacity-95 transition cursor-pointer"
+          >
             Selengkapnya <span aria-hidden="true">➜</span>
-          </button>
-        </div>
+          </Link>
+        </motion.div>
       </div>
     </section>
   );

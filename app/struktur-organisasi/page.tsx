@@ -1,4 +1,7 @@
+"use client";
+
 import Image from "next/image";
+import { motion } from "framer-motion";
 import FooterSection from "../components/FooterSection";
 
 type Member = {
@@ -19,23 +22,53 @@ const strukturOrganisasi: Member[] = [
   { role: "Head Organization & Project", name: "nama" },
 ];
 
+const fadeUp = {
+  hidden: { opacity: 0, y: 32 },
+  show: { opacity: 1, y: 0 },
+};
+
 export default function StrukturOrganisasiPage() {
   return (
     <main className="w-full overflow-x-hidden bg-white pt-24 md:pt-28">
       <section className="max-w-500 mx-auto px-5 md:px-8 pb-16 md:pb-20">
         <div>
-          <h1 className="font-montserrat text-5xl md:text-5xl font-extrabold tracking-tight text-black uppercase">
+          <motion.h1
+            className="font-montserrat text-5xl md:text-5xl font-extrabold tracking-tight text-black uppercase"
+            variants={fadeUp}
+            initial="hidden"
+            whileInView="show"
+            viewport={{ once: true, amount: 0.6 }}
+            transition={{ duration: 0.6, ease: "easeOut" }}
+          >
             Struktur Organisasi
-          </h1>
-          <h2 className="mt-2 font-montserrat text-xl md:text-3xl font-extrabold tracking-tight text-black uppercase">
+          </motion.h1>
+          <motion.h2
+            className="mt-2 font-montserrat text-xl md:text-3xl font-extrabold tracking-tight text-black uppercase"
+            variants={fadeUp}
+            initial="hidden"
+            whileInView="show"
+            viewport={{ once: true, amount: 0.6 }}
+            transition={{ duration: 0.6, delay: 0.08, ease: "easeOut" }}
+          >
             Pusat Kajian Akuntansi dan Keuangan Publik
-          </h2>
+          </motion.h2>
         </div>
 
         <div className="mt-10 md:mt-35 max-w-250 mx-auto">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-y-12 md:gap-y-20 gap-x-4 md:gap-x-0">
-            {strukturOrganisasi.map((item) => (
-              <article key={item.role} className="text-center">
+            {strukturOrganisasi.map((item, index) => (
+              <motion.article
+                key={item.role}
+                className="text-center"
+                initial={{ opacity: 0, y: 30, scale: 0.98 }}
+                whileInView={{ opacity: 1, y: 0, scale: 1 }}
+                viewport={{ once: true, amount: 0.25 }}
+                transition={{
+                  duration: 0.55,
+                  delay: Math.min(index * 0.08, 0.5),
+                  ease: "easeOut",
+                }}
+              >
                 <div className="mx-auto w-3/4 max-w-130 h-48 md:h-54 rounded-[18px] bg-[#f7d761] relative overflow-visible">
                   <Image
                     src="/profil-organisasi/1.png"
@@ -51,7 +84,7 @@ export default function StrukturOrganisasiPage() {
                 <p className="-mt-1 font-poppins text-2xl leading-[0.95] text-black">
                   {item.name}
                 </p>
-              </article>
+              </motion.article>
             ))}
           </div>
         </div>
