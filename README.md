@@ -34,3 +34,13 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+
+## Admin authentication setup
+
+This project includes a simple, server-side admin authentication using an HttpOnly JWT cookie.
+
+- Copy `.env.local.example` to `.env.local` and set `ADMIN_USERNAME`, `ADMIN_PASSWORD`, and `ADMIN_JWT_SECRET`.
+- Set `ADMIN_PASSWORD` to your desired admin password (stored in plaintext in env — not recommended for production).
+- Ensure `ADMIN_JWT_SECRET` is a long random string.
+
+On successful login the server sets a secure, HttpOnly cookie `pkakp_admin_token` used to protect `/admin` routes.

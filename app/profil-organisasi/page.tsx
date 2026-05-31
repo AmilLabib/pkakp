@@ -3,6 +3,8 @@
 import Image from "next/image";
 import { motion } from "framer-motion";
 import FooterSection from "../components/FooterSection";
+import { useEffect, useState } from "react";
+import { fetchMembers } from "../../lib/supabaseClient";
 
 const fadeUp = {
   hidden: { opacity: 0, y: 32 },
@@ -10,6 +12,37 @@ const fadeUp = {
 };
 
 export default function ProfilOrganisasiPage() {
+  const [members, setMembers] = useState<
+    {
+      id: string;
+      name: string;
+      role: string;
+      photo?: string;
+    }[]
+  >([]);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const { data, error } = await fetchMembers();
+        if (!error && data && data.length > 0) {
+          const mapped = data.map((d: unknown) => {
+            const r = d as Record<string, unknown>;
+            return {
+              id: r.id ? String(r.id) : Date.now().toString(),
+              name: typeof r.name === "string" ? r.name : "",
+              role: typeof r.role === "string" ? r.role : "",
+              photo: typeof r.photo === "string" ? r.photo : "",
+            };
+          });
+          setMembers(mapped);
+        }
+      } catch (e) {
+        // ignore
+      }
+    })();
+  }, []);
+
   return (
     <main className="w-full overflow-x-hidden bg-white pt-24 md:pt-28">
       <section className="max-w-500 mx-auto px-5 md:px-8">

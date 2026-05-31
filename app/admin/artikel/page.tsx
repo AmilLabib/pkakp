@@ -1,12 +1,9 @@
 "use client";
 
-import { useState, useEffect, type ComponentType } from "react";
-import {
-  insertArticle,
-  fetchArticles,
-  updateArticle,
-  deleteArticle,
-} from "../../../lib/supabaseClient";
+import React, { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { fetchArticles, deleteArticle } from "../../../lib/supabaseClient";
+import Toast from "../../components/Toast";
 
 type Article = {
   id: string;
@@ -24,70 +21,27 @@ type ArticleRow = {
   image?: string;
 };
 
-type CKEditorBuild = {
-  create: (...args: unknown[]) => unknown;
-};
-
-type CKEditorInstance = {
-  getData: () => string;
-};
-
-type CKEditorProps = {
-  editor: CKEditorBuild;
-  data: string;
-  onChange: (event: unknown, editor: CKEditorInstance) => void;
-};
-
-type CKEditorComponent = ComponentType<CKEditorProps>;
-
 export default function AdminArtikel() {
   const [articles, setArticles] = useState<Article[]>([]);
-  const [title, setTitle] = useState("");
-  const [content, setContent] = useState("");
-  const [CKEditor, setCKEditor] = useState<CKEditorComponent | null>(null);
-  const [ClassicEditor, setClassicEditor] = useState<CKEditorBuild | null>(
-    null,
-  );
-  const [isEditingIndex, setIsEditingIndex] = useState<number | null>(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteIdx, setDeleteIdx] = useState<number | null>(null);
+  const [deleteTitle, setDeleteTitle] = useState<string>("");
+  const [toast, setToast] = useState<{
+    message: string;
+    type?: "info" | "success" | "error";
+  } | null>(null);
+  const router = useRouter();
 
   useEffect(() => {
-    let mounted = true;
-    // try dynamic import of CKEditor packages if installed
-    (async () => {
-      try {
-        const ck = await import("@ckeditor/ckeditor5-react");
-        const Classic = await import("@ckeditor/ckeditor5-build-classic");
-        if (mounted) {
-          const CKEditorComponent = (ck as { CKEditor?: CKEditorComponent })
-            .CKEditor;
-          const ClassicBuild = (Classic.default || Classic) as CKEditorBuild;
-
-          if (CKEditorComponent) {
-            setCKEditor(() => CKEditorComponent);
-            setClassicEditor(ClassicBuild);
-          }
-        }
-      } catch {
-        // silently ignore; Editor will remain null and show fallback
-      }
-    })();
-
-    return () => {
-      mounted = false;
-    };
-  }, []);
-
-  useEffect(() => {
-    // try load articles from Supabase; if fails, keep local initialArticles
     (async () => {
       try {
         const { data, error } = await fetchArticles();
         if (!error && data && data.length > 0) {
-          // map to local Article shape if necessary
           const mapped = (data as ArticleRow[]).map((d) => ({
             id: String(d.id ?? ""),
             title: d.title || "",
             desc: d.desc || "",
+            author: (d as any).author || "",
             date: d.created_at
               ? new Date(d.created_at).toLocaleDateString()
               : "",
@@ -95,219 +49,158 @@ export default function AdminArtikel() {
           }));
           setArticles(mapped);
         }
-      } catch {
-        // ignore and keep initial
+      } catch (err) {
+        console.error("Gagal memuat artikel awal:", err);
       }
     })();
   }, []);
 
-  const addOrUpdate = async () => {
-    if (!title.trim()) return;
+  const openEditor = (idx?: number) => {
+    if (idx !== undefined) {
+      const target = articles[idx];
+      if (!target) return;
 
-    if (isEditingIndex !== null) {
-      const articleToEdit = articles[isEditingIndex];
-      if (!articleToEdit?.id) return;
-
-      const previous = [...articles];
-      const updated: Article = {
-        ...articleToEdit,
-        title: title.trim(),
-        desc: content || "",
-      };
-
-      setArticles((s) => s.map((a, i) => (i === isEditingIndex ? updated : a)));
-      setTitle("");
-      setContent("");
-      setIsEditingIndex(null);
-
-      const { error } = await updateArticle(articleToEdit.id, {
-        title: updated.title,
-        desc: updated.desc,
-        image: updated.image,
-      });
-
-      if (error) {
-        console.error("Supabase update error:", error);
-        setArticles(previous);
-      }
+      // prefer navigation with id param; editor will fetch data by id if needed
+      router.push(`/admin/artikel/editor?id=${target.id}`);
+      return;
+    } else {
+      sessionStorage.removeItem("admin-article-draft");
+      router.push("/admin/artikel/editor");
       return;
     }
-
-    const optimisticId = `temp-${Date.now()}`;
-    const newArticle: Article = {
-      id: optimisticId,
-      title: title.trim(),
-      desc: content || "",
-      date: new Date().toLocaleDateString(),
-      image: "",
-    };
-
-    // optimistically add to UI
-    setArticles((s) => [newArticle, ...s]);
-    setTitle("");
-    setContent("");
-
-    // try to persist to Supabase
-    const { data, error } = await insertArticle({
-      title: newArticle.title,
-      desc: newArticle.desc,
-      image: newArticle.image,
-    });
-
-    if (error) {
-      console.error("Supabase insert error:", error);
-      setArticles((s) => s.filter((a) => a.id !== optimisticId));
-      return;
-    }
-
-    const insertedData = data as ArticleRow[] | null;
-    const inserted: ArticleRow | null =
-      insertedData && insertedData.length > 0 ? insertedData[0] : null;
-
-    if (inserted && inserted.id !== undefined && inserted.id !== null) {
-      setArticles((s) =>
-        s.map((a) =>
-          a.id === optimisticId
-            ? {
-                ...a,
-                id: String(inserted.id),
-                date: inserted.created_at
-                  ? new Date(inserted.created_at).toLocaleDateString()
-                  : a.date,
-              }
-            : a,
-        ),
-      );
-    }
   };
 
-  const startEdit = (idx: number) => {
+  // show confirmation modal first
+  const remove = (idx: number) => {
     const target = articles[idx];
     if (!target) return;
-    setIsEditingIndex(idx);
-    setTitle(target.title);
-    setContent(target.desc || "");
+    setDeleteIdx(idx);
+    setDeleteTitle(target.title || "");
+    setShowDeleteModal(true);
   };
 
-  const cancelEdit = () => {
-    setIsEditingIndex(null);
-    setTitle("");
-    setContent("");
+  const cancelDelete = () => {
+    setShowDeleteModal(false);
+    setDeleteIdx(null);
+    setDeleteTitle("");
   };
 
-  const remove = async (idx: number) => {
-    const target = articles[idx];
-    if (!target) return;
+  const confirmDelete = async () => {
+    if (deleteIdx === null) return cancelDelete();
+    const target = articles[deleteIdx];
+    if (!target) return cancelDelete();
 
     const previous = [...articles];
-    setArticles((s) => s.filter((_, i) => i !== idx));
+    // optimistic remove in UI
+    setArticles((s) => s.filter((_, i) => i !== deleteIdx));
 
-    if (!target.id || target.id.startsWith("temp-")) return;
+    // if no id or temp id, skip server delete
+    if (!target.id || target.id.startsWith("temp-")) {
+      cancelDelete();
+      return;
+    }
 
     const { error } = await deleteArticle(target.id);
     if (error) {
       console.error("Supabase delete error:", error);
       setArticles(previous);
+      setToast({
+        message: `Hapus artikel gagal: ${String(error)}`,
+        type: "error",
+      });
+    } else {
+      setToast({ message: "Artikel berhasil dihapus", type: "success" });
     }
+
+    cancelDelete();
   };
 
   return (
     <section className="py-12">
       <div className="flex items-center justify-between mb-4">
         <h1 className="text-2xl font-extrabold">Kelola Artikel</h1>
-      </div>
-
-      <div className="mb-4 flex gap-2">
-        <input
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          placeholder="Judul artikel"
-          className="border px-2 py-1 flex-1"
-        />
         <button
-          onClick={cancelEdit}
-          className="bg-gray-100 text-black px-3 py-1 rounded"
+          onClick={() => openEditor()}
+          className="bg-black text-white px-4 py-2 rounded hover:bg-gray-800 transition"
         >
-          {isEditingIndex !== null ? "Batal Edit" : "Reset Form"}
+          Tambah Artikel
         </button>
-        <button
-          onClick={addOrUpdate}
-          className="bg-black text-white px-3 py-1 rounded"
-        >
-          {isEditingIndex !== null ? "Simpan Perubahan" : "Tambah & Publish"}
-        </button>
-      </div>
-
-      {/* Editor Section */}
-      <div className="mb-6">
-        {!CKEditor || !ClassicEditor ? (
-          <div className="p-4 border rounded bg-yellow-50">
-            <p className="text-sm text-yellow-800">
-              Editor belum dimuat. Jika Anda sudah menjalankan{" "}
-              <code>
-                npm install @ckeditor/ckeditor5-react
-                @ckeditor/ckeditor5-build-classic
-              </code>
-              , refresh halaman.
-            </p>
-            <p className="text-sm text-gray-600 mt-2">
-              Atau editor akan dimuat secara dinamis jika tersedia.
-            </p>
-          </div>
-        ) : (
-          <div>
-            <CKEditor
-              editor={ClassicEditor}
-              data={content}
-              onChange={(_event, editorInstance) => {
-                setContent(editorInstance.getData());
-              }}
-            />
-          </div>
-        )}
-
-        <div className="mt-3">
-          <h3 className="font-semibold">Preview</h3>
-          <div
-            className="prose max-w-full border p-4 rounded mt-2"
-            dangerouslySetInnerHTML={{ __html: content }}
-          />
-        </div>
       </div>
 
       <div className="bg-white rounded shadow overflow-hidden">
-        <table className="w-full">
-          <thead className="bg-gray-50">
+        <table className="w-full text-left border-collapse">
+          <thead className="bg-gray-50 border-b">
             <tr>
-              <th className="p-3">Judul</th>
-              <th className="p-3">Tanggal</th>
-              <th className="p-3">Aksi</th>
+              <th className="p-3 font-semibold text-gray-700">Judul</th>
+              <th className="p-3 font-semibold text-gray-700">Tanggal</th>
+              <th className="p-3 font-semibold text-gray-700">Aksi</th>
             </tr>
           </thead>
           <tbody>
             {articles.map((a, i) => (
-              <tr key={`${a.title}-${i}`} className="border-t">
+              <tr key={`${a.id}-${i}`} className="border-b hover:bg-gray-50">
                 <td className="p-3">{a.title}</td>
-                <td className="p-3">{a.date}</td>
+                <td className="p-3 text-sm text-gray-600">{a.date}</td>
                 <td className="p-3">
                   <button
-                    onClick={() => startEdit(i)}
-                    className="text-sm text-blue-600 mr-2"
+                    onClick={() => openEditor(i)}
+                    className="text-sm text-blue-600 mr-3 hover:underline"
                   >
                     Edit
                   </button>
                   <button
                     onClick={() => remove(i)}
-                    className="text-sm text-red-600"
+                    className="text-sm text-red-600 hover:underline"
                   >
                     Hapus
                   </button>
                 </td>
               </tr>
             ))}
+
+            {articles.length === 0 && (
+              <tr>
+                <td colSpan={3} className="p-4 text-center text-gray-500">
+                  Belum ada artikel.
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
       </div>
+
+      {showDeleteModal && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full shadow-lg">
+            <h2 className="text-lg font-bold mb-2">Hapus Artikel</h2>
+            <p className="text-sm text-gray-700 mb-4">
+              Apakah Anda yakin ingin menghapus artikel{" "}
+              <strong>{deleteTitle}</strong>?
+            </p>
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={cancelDelete}
+                className="bg-white border border-gray-300 px-4 py-2 rounded"
+              >
+                Batal
+              </button>
+              <button
+                onClick={confirmDelete}
+                className="bg-red-600 text-white px-4 py-2 rounded"
+              >
+                Hapus
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
+      )}
     </section>
   );
 }

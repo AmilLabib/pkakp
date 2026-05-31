@@ -70,6 +70,14 @@ body {
   font-family: Helvetica, Arial, sans-serif;
 }
 
+/* Ensure article content images/figures don't keep placeholder background */
+.prose img,
+.prose figure {
+  background: transparent !important;
+  display: block;
+  width: 100%;
+}
+
 /* Hide global header and footer when a page requests a simplified layout */
 body.no-navbar header,
 body.no-navbar footer {

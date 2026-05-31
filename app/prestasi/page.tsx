@@ -45,6 +45,20 @@ export default function PrestasiPage() {
     return achievements.slice(start, start + ITEMS_PER_PAGE);
   }, [currentPage, achievements]);
 
+  const [isPaused, setIsPaused] = useState(false);
+
+  useEffect(() => {
+    if (loading) return;
+    if (totalPages <= 1) return;
+    if (isPaused) return;
+
+    const interval = setInterval(() => {
+      setCurrentPage((prev) => (prev >= totalPages ? 1 : prev + 1));
+    }, 3000);
+
+    return () => clearInterval(interval);
+  }, [loading, totalPages, isPaused]);
+
   return (
     <main className="w-full overflow-x-hidden bg-white pt-24 md:pt-28">
       <section className="max-w-500 mx-auto px-5 md:px-8 pb-12 md:pb-16">
@@ -68,13 +82,15 @@ export default function PrestasiPage() {
         </motion.h2>
 
         <motion.div
-          className="mt-10 md:mt-12 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"
+          className="mt-10 md:mt-12 grid grid-cols-2 md:grid-cols-3 gap-4"
           initial="hidden"
           animate="visible"
           variants={{
             hidden: {},
             visible: { transition: { staggerChildren: 0.08 } },
           }}
+          onMouseEnter={() => setIsPaused(true)}
+          onMouseLeave={() => setIsPaused(false)}
         >
           {loading
             ? Array.from({ length: ITEMS_PER_PAGE }).map((_, idx) => (
@@ -82,10 +98,10 @@ export default function PrestasiPage() {
                   key={`achievement-skeleton-${idx}`}
                   className="relative overflow-hidden rounded-lg achievement-card animate-pulse"
                 >
-                  <div className="block w-full h-90 bg-gray-200" />
-                  <div className="absolute inset-x-0 top-0 h-24 pointer-events-none bg-linear-to-b from-white/30 to-transparent" />
-                  <div className="absolute inset-x-0 bottom-0 p-4">
-                    <div className="h-6 w-3/4 mx-auto rounded bg-white/70" />
+                  <div className="block w-full h-44 sm:h-52 md:h-72 bg-gray-200" />
+                  <div className="absolute inset-x-0 top-0 h-16 sm:h-20 md:h-24 pointer-events-none bg-linear-to-b from-white/30 to-transparent" />
+                  <div className="absolute inset-x-0 bottom-0 p-3 sm:p-4">
+                    <div className="h-5 w-3/4 mx-auto rounded bg-white/70" />
                   </div>
                 </article>
               ))
@@ -103,14 +119,14 @@ export default function PrestasiPage() {
                   <img
                     src={item.imageSrc || "/prestasi/1.png"}
                     alt={item.title || "Prestasi PKA KP"}
-                    className="block w-full h-90 object-cover"
+                    className="block w-full h-44 sm:h-52 md:h-72 object-cover"
                   />
 
-                  <div className="absolute inset-x-0 top-0 h-24 pointer-events-none bg-linear-to-b from-[#2cb0a1] to-transparent" />
+                  <div className="absolute inset-x-0 top-0 h-16 sm:h-20 md:h-24 pointer-events-none bg-linear-to-b from-[#2cb0a1] to-transparent" />
 
-                  <div className="absolute inset-x-0 bottom-0 p-4 bg-linear-to-t from-[#2cb0a1] to-transparent">
+                  <div className="absolute inset-x-0 bottom-0 p-3 sm:p-4 bg-linear-to-t from-[#2cb0a1] to-transparent">
                     {item.title ? (
-                      <h3 className="relative z-10 font-montserrat text-white text-3xl leading-tight font-extrabold text-center">
+                      <h3 className="relative z-10 font-montserrat text-white text-xs sm:text-2xl md:text-lg leading-tight font-extrabold text-center">
                         {item.title}
                       </h3>
                     ) : null}

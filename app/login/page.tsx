@@ -11,24 +11,24 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
 
-  // NOTE: This is a simple client-side mock auth. In production, replace with real API calls.
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
-
-    // Assumption: single admin account for demo
-    const validUsername = "admin";
-    const validPassword = "admin123";
-
-    if (username === validUsername && password === validPassword) {
-      try {
-        localStorage.setItem("pkakp_admin_auth", "true");
-      } catch {
-        // ignore storage errors
+    try {
+      const res = await fetch("/api/admin/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, password }),
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        setError(json.error || "Login gagal");
+        return;
       }
+      // On success, server sets HttpOnly cookie; just navigate to admin
       router.push("/admin");
-    } else {
-      setError("Username atau password salah");
+    } catch (err) {
+      setError("Terjadi kesalahan. Coba lagi.");
     }
   };
 
@@ -75,7 +75,7 @@ export default function LoginPage() {
         </form>
 
         <p className="mt-4 text-xs text-gray-500">
-          Demo akun: <strong>admin</strong> / <strong>admin123</strong>
+          Gunakan akun admin yang telah dikonfigurasi di environment server.
         </p>
       </section>
     </main>
@@ -83,7 +83,7 @@ export default function LoginPage() {
 }
 
 // hide navbar/footer on login page as well
-export function useHideGlobalNav() {
+function useHideGlobalNav() {
   useEffect(() => {
     try {
       document.body.classList.add("no-navbar");

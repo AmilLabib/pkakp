@@ -3,10 +3,21 @@
 import { useMemo, useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
+import ImageWithPlaceholder from "../../components/shared/ImageWithPlaceholder";
 import FooterSection from "../../components/FooterSection";
 import { fetchArticles } from "../../../lib/supabaseClient";
+import {
+  extractFirstImageSrc,
+  removeFirstImageTag,
+} from "../../../lib/excerpt";
 
-type Article = { title: string; desc: string; date: string; image: string };
+type Article = {
+  title: string;
+  desc: string;
+  date: string;
+  image: string;
+  author?: string;
+};
 
 export default function ArticleDetailPage() {
   const params = useParams();
@@ -19,14 +30,29 @@ export default function ArticleDetailPage() {
       try {
         const { data, error } = await fetchArticles();
         if (!error && data) {
-          const mapped = data.map((d: any) => ({
-            title: d.title || "",
-            desc: d.desc || "",
-            date: d.created_at
-              ? new Date(d.created_at).toLocaleDateString()
-              : "",
-            image: d.image || "",
-          }));
+          const mapped = data.map((d: any) => {
+            const descHtml = d.desc || "";
+            const imageFromField = d.image && d.image !== "" ? d.image : null;
+            const imageFromContent = !imageFromField
+              ? extractFirstImageSrc(descHtml)
+              : null;
+
+            const usedImage = imageFromField || imageFromContent || "";
+            // if we used imageFromContent, strip the first image tag from the desc so it doesn't show twice
+            const finalDesc = imageFromContent
+              ? removeFirstImageTag(descHtml)
+              : descHtml;
+
+            return {
+              title: d.title || "",
+              desc: finalDesc,
+              author: d.author || "",
+              date: d.created_at
+                ? new Date(d.created_at).toLocaleDateString()
+                : "",
+              image: usedImage,
+            };
+          });
           setArticles(mapped);
         }
       } catch (e) {
@@ -64,30 +90,32 @@ export default function ArticleDetailPage() {
             {article.title}
           </h1>
           <p className="text-sm text-gray-600 mb-4">
-            Ini diisi nama penulis
+            {article.author ? article.author : "Ini diisi nama penulis"}
             <br />
             {article.date}
           </p>
 
-          <div className="w-full rounded-md overflow-hidden mb-6">
-            <img
-              src={article.image}
-              alt={article.title}
-              className="w-full h-64 object-cover rounded-md"
-            />
+          <div className="w-full rounded-md overflow-hidden mb-6 relative h-120">
+            {article.image ? (
+              <ImageWithPlaceholder
+                src={article.image}
+                alt={article.title}
+                fill
+                className="object-cover rounded-md"
+              />
+            ) : (
+              <div className="w-full h-64 bg-gray-100 rounded-md" />
+            )}
           </div>
 
           <div className="prose max-w-none">
-            <p>{article.desc}</p>
-            <p>
-              Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do
-              eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut
-              enim ad minim veniam.
-            </p>
-            <p>
-              (Isi artikel lengkap -- Anda bisa mengganti dengan konten nyata
-              atau mengambil dari CMS/API.)
-            </p>
+            {article.desc ? (
+              <div dangerouslySetInnerHTML={{ __html: article.desc }} />
+            ) : (
+              <p>
+                <em>Konten artikel masih kosong.</em>
+              </p>
+            )}
           </div>
         </article>
 
@@ -98,12 +126,17 @@ export default function ArticleDetailPage() {
           <div className="space-y-4">
             {recent.map((a, idx) => (
               <div key={idx} className="flex gap-3 items-start">
-                <div className="w-20 h-14 overflow-hidden rounded-md flex-shrink-0">
-                  <img
-                    src={a.image}
-                    alt={a.title}
-                    className="w-full h-full object-cover"
-                  />
+                <div className="w-20 h-14 overflow-hidden rounded-md shrink-0 relative">
+                  {a.image ? (
+                    <ImageWithPlaceholder
+                      src={a.image}
+                      alt={a.title}
+                      fill
+                      className="object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full bg-gray-100" />
+                  )}
                 </div>
                 <div>
                   <Link

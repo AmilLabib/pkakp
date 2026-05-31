@@ -81,9 +81,14 @@ export default function ArticlesSection() {
 
   useEffect(() => {
     const updateItemsPerView = () => {
-      if (window.innerWidth >= 768) {
+      if (window.innerWidth >= 1024) {
+        // PC: 3 items
         setItemsPerView(3);
+      } else if (window.innerWidth >= 768) {
+        // Tablet: 2 items
+        setItemsPerView(2);
       } else {
+        // Mobile: 1 item
         setItemsPerView(1);
       }
     };
@@ -135,7 +140,7 @@ export default function ArticlesSection() {
               {articles.map((article) => (
                 <div
                   key={article.title}
-                  className="w-full md:w-1/3 shrink-0 px-3 md:px-4 first:pl-0 last:pr-0"
+                  className="w-full md:w-1/2 lg:w-1/3 shrink-0 px-3 md:px-4 first:pl-0 last:pr-0"
                 >
                   <ArticleCard article={article} />
                 </div>
@@ -175,7 +180,7 @@ export default function ArticlesSection() {
           <motion.button
             type="button"
             onClick={() => router.push("/artikel")}
-            className="font-poppins rounded-full bg-[#f2c22e] text-[#143434] font-bold w-1/2 px-10 py-2.5 hover:brightness-95 transition cursor-pointer"
+            className="font-poppins rounded-full bg-[#f2c22e] text-[#143434] font-bold w-full sm:w-10/12 md:w-1/2 px-4 md:px-10 py-2.5 hover:brightness-95 transition cursor-pointer max-w-[420px]"
             whileHover={{ scale: 1.03 }}
             whileTap={{ scale: 0.98 }}
             transition={{ duration: 0.2, ease: easeOut }}

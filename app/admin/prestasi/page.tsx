@@ -6,7 +6,9 @@ import {
   insertPrestasi,
   deletePrestasi,
   uploadPrestasiImage,
+  updatePrestasi,
 } from "../../../lib/supabaseClient";
+import Toast from "../../components/Toast";
 
 type Prestasi = { id: string; title: string; year: string; image?: string };
 
@@ -21,6 +23,12 @@ export default function AdminPrestasi() {
   const [image, setImage] = useState<string>("");
   const [newImageFile, setNewImageFile] = useState<File | null>(null);
   const [status, setStatus] = useState<string | null>(null);
+  const [toast, setToast] = useState<{
+    message: string;
+    type?: "info" | "success" | "error";
+  } | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
 
   const openModal = () => setIsModalOpen(true);
 
@@ -53,6 +61,10 @@ export default function AdminPrestasi() {
           if (up.error) {
             console.error("uploadPrestasiImage error", up.error);
             setStatus("Gagal mengunggah gambar: " + String(up.error));
+            setToast({
+              message: `Gagal mengunggah gambar: ${String(up.error)}`,
+              type: "error",
+            });
             // revert optimistic update
             setPrestasi((s) => s.filter((x) => x.id !== newItem.id));
             return;
@@ -82,11 +94,16 @@ export default function AdminPrestasi() {
             setStatus(
               "Gagal menyimpan prestasi ke Supabase: " + JSON.stringify(error),
             );
+            setToast({
+              message: `Gagal menyimpan prestasi: ${JSON.stringify(error)}`,
+              type: "error",
+            });
           }
           // revert optimistic update
           setPrestasi((s) => s.filter((x) => x.id !== newItem.id));
         } else {
           setStatus("Berhasil menyimpan prestasi.");
+          setToast({ message: "Prestasi berhasil disimpan", type: "success" });
           // refresh list
           try {
             const fetched = await fetchPrestasi();
@@ -108,9 +125,90 @@ export default function AdminPrestasi() {
       } catch (e) {
         console.error("insertPrestasi exception", e);
         setStatus("Exception saat menyimpan: " + String(e));
+        setToast({
+          message: `Exception saat menyimpan: ${String(e)}`,
+          type: "error",
+        });
         setPrestasi((s) => s.filter((x) => x.id !== newItem.id));
       }
     })();
+  };
+
+  const startEdit = (p: Prestasi) => {
+    setEditingId(p.id);
+    setTitle(p.title || "");
+    setYear(p.year || "");
+    setImage(p.image || "");
+    setNewImageFile(null);
+    setIsModalOpen(true);
+  };
+
+  const saveEdit = async () => {
+    if (!editingId) return;
+    let finalImage = image;
+    try {
+      if (newImageFile) {
+        setStatus("Mengunggah gambar...");
+        const up = await uploadPrestasiImage(newImageFile);
+        if (up.error) {
+          console.error("uploadPrestasiImage error", up.error);
+          setToast({
+            message: `Gagal mengunggah gambar: ${String(up.error)}`,
+            type: "error",
+          });
+          return;
+        }
+        finalImage = up.data?.publicUrl ?? finalImage;
+      }
+
+      setStatus("Menyimpan perubahan...");
+      const { data, error } = await updatePrestasi(editingId, {
+        title,
+        year,
+        image: finalImage,
+      });
+      if (error) {
+        console.error("updatePrestasi error", error);
+        setToast({
+          message: `Gagal menyimpan perubahan: ${String(error)}`,
+          type: "error",
+        });
+      } else {
+        setToast({ message: "Perubahan prestasi disimpan", type: "success" });
+        // optimistic update locally
+        setPrestasi((s) =>
+          s.map((x) =>
+            x.id === editingId ? { ...x, title, year, image: finalImage } : x,
+          ),
+        );
+      }
+    } catch (e) {
+      console.error("saveEdit exception", e);
+      setToast({
+        message: `Gagal menyimpan perubahan: ${String(e)}`,
+        type: "error",
+      });
+    } finally {
+      setEditingId(null);
+      setNewImageFile(null);
+      setImage("");
+      setTitle("");
+      setYear("");
+      setIsModalOpen(false);
+      // refresh list
+      try {
+        const fetched = await fetchPrestasi();
+        if (!fetched.error && fetched.data) {
+          const mapped = fetched.data.map((d: any) => ({
+            id: d.id?.toString() || Date.now().toString(),
+            title: d.title,
+            year: d.year,
+            image: d.image,
+          }));
+          setPrestasi(mapped);
+        }
+      } catch (_) {}
+    }
   };
 
   const onImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -128,7 +226,28 @@ export default function AdminPrestasi() {
     // attempt delete on supabase
     (async () => {
       const { data, error } = await deletePrestasi(id);
-      if (error) console.error("deletePrestasi error", error);
+      if (error) {
+        console.error("deletePrestasi error", error);
+        setToast({
+          message: `Hapus prestasi gagal: ${String(error)}`,
+          type: "error",
+        });
+      } else {
+        setToast({ message: "Prestasi berhasil dihapus", type: "success" });
+        // refresh list
+        try {
+          const fetched = await fetchPrestasi();
+          if (!fetched.error && fetched.data) {
+            const mapped = fetched.data.map((d: any) => ({
+              id: d.id?.toString() || Date.now().toString(),
+              title: d.title,
+              year: d.year,
+              image: d.image,
+            }));
+            setPrestasi(mapped);
+          }
+        } catch (_) {}
+      }
     })();
   };
 
@@ -186,12 +305,15 @@ export default function AdminPrestasi() {
                   <div className="text-sm text-gray-500">{p.year}</div>
                 </div>
               </div>
-              <div>
+              <div className="flex items-center gap-3">
                 <button
-                  onClick={() => {
-                    remove(p.id);
-                    removeRemote(p.id);
-                  }}
+                  onClick={() => startEdit(p)}
+                  className="text-sm text-blue-600"
+                >
+                  Edit
+                </button>
+                <button
+                  onClick={() => setDeleteTarget(p.id)}
                   className="text-sm text-red-600"
                 >
                   Hapus
@@ -210,10 +332,20 @@ export default function AdminPrestasi() {
         </div>
       )}
 
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
+      )}
+
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
           <div className="w-full max-w-md rounded-lg bg-white p-4 shadow-lg">
-            <h2 className="text-lg font-bold mb-4">Tambah Prestasi</h2>
+            <h2 className="text-lg font-bold mb-4">
+              {editingId ? "Edit Prestasi" : "Tambah Prestasi"}
+            </h2>
 
             <div className="space-y-3">
               <input
@@ -251,11 +383,52 @@ export default function AdminPrestasi() {
               >
                 Batal
               </button>
+              {editingId ? (
+                <button
+                  onClick={saveEdit}
+                  className="px-3 py-1 rounded bg-blue-600 text-white"
+                >
+                  Simpan Perubahan
+                </button>
+              ) : (
+                <button
+                  onClick={add}
+                  className="px-3 py-1 rounded bg-black text-white"
+                >
+                  Simpan
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* delete confirmation modal */}
+      {deleteTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="w-full max-w-sm rounded-lg bg-white p-4 shadow-lg">
+            <h3 className="text-lg font-bold mb-2">Konfirmasi Hapus</h3>
+            <p className="text-sm text-gray-700">
+              Apakah Anda yakin ingin menghapus prestasi ini? Tindakan ini tidak
+              dapat dibatalkan.
+            </p>
+            <div className="mt-4 flex justify-end gap-2">
               <button
-                onClick={add}
-                className="px-3 py-1 rounded bg-black text-white"
+                onClick={() => setDeleteTarget(null)}
+                className="px-3 py-1 rounded border"
               >
-                Simpan
+                Batal
+              </button>
+              <button
+                onClick={() => {
+                  // optimistic remove locally, then call server
+                  remove(deleteTarget!);
+                  removeRemote(deleteTarget!);
+                  setDeleteTarget(null);
+                }}
+                className="px-3 py-1 rounded bg-red-600 text-white"
+              >
+                Hapus
               </button>
             </div>
           </div>

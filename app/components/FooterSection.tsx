@@ -2,7 +2,8 @@ import Image from "next/image";
 
 export default function FooterSection() {
   return (
-    <footer className="pt-10 pb-6 bg-[url('/overlay.png')] bg-cover bg-center bg-no-repeat">
+    // Break out of parent containers so footer background is full-bleed
+    <footer className="relative left-1/2 right-1/2 w-screen -translate-x-1/2 pt-10 pb-6 bg-[url('/overlay.png')] bg-cover bg-center bg-no-repeat">
       <div className="max-w-6xl mx-auto px-5 md:px-8 flex flex-col items-center text-center">
         <Image src="/logo-2.png" alt="PKAKP" width={150} height={80} />
         <h3 className="font-montserrat mt-3 text-5xl font-extrabold text-white leading-none">

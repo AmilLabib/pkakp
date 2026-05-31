@@ -6,6 +6,7 @@ import FooterSection from "../components/FooterSection";
 import ArticleCard from "../components/ArticleCard";
 import Pagination from "../components/Pagination";
 import { fetchArticles } from "../../lib/supabaseClient";
+import { excerptFromHtml, extractFirstImageSrc } from "../../lib/excerpt";
 
 type Article = { title: string; desc: string; date: string; image: string };
 
@@ -21,14 +22,24 @@ export default function ArtikelPage() {
       try {
         const { data, error } = await fetchArticles();
         if (!error && data) {
-          const mapped = data.map((d: any) => ({
-            title: d.title || "",
-            desc: d.desc || "",
-            date: d.created_at
-              ? new Date(d.created_at).toLocaleDateString()
-              : "",
-            image: d.image || "",
-          }));
+          const mapped = data.map((d: any) => {
+            const descHtml = d.desc || "";
+            // try to use explicit image field, otherwise extract first image from content
+            const imageFromField = d.image && d.image !== "" ? d.image : null;
+            const imageFromContent = !imageFromField
+              ? extractFirstImageSrc(descHtml)
+              : null;
+
+            return {
+              title: d.title || "",
+              // produce a short excerpt from the article HTML/content
+              desc: excerptFromHtml(descHtml, 2),
+              date: d.created_at
+                ? new Date(d.created_at).toLocaleDateString()
+                : "",
+              image: imageFromField || imageFromContent || "",
+            };
+          });
           setArticles(mapped);
         }
       } catch (e) {
@@ -69,7 +80,7 @@ export default function ArtikelPage() {
         </motion.h2>
 
         <motion.div
-          className="mt-10 grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8"
+          className="mt-10 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8"
           initial="hidden"
           animate="visible"
           variants={{

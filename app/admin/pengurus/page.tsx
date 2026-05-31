@@ -6,7 +6,9 @@ import {
   insertMember,
   deleteMember,
   uploadMemberPhoto,
+  updateMember,
 } from "../../../lib/supabaseClient";
+import Toast from "../../components/Toast";
 
 type Pengurus = { id: string; name: string; role: string; image?: string };
 
@@ -20,6 +22,13 @@ export default function AdminPengurus() {
   const [role, setRole] = useState("");
   const [image, setImage] = useState<string>("");
   const [newImageFile, setNewImageFile] = useState<File | null>(null);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [toast, setToast] = useState<{
+    message: string;
+    type?: "info" | "success" | "error";
+  } | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
 
   const openModal = () => setIsModalOpen(true);
 
@@ -28,6 +37,8 @@ export default function AdminPengurus() {
     setName("");
     setRole("");
     setImage("");
+    setUploadError(null);
+    setNewImageFile(null);
   };
 
   const add = () => {
@@ -44,22 +55,64 @@ export default function AdminPengurus() {
     (async () => {
       try {
         let photoUrl = newItem.image;
+        setUploadError(null);
         if (newImageFile) {
           const up = await uploadMemberPhoto(newImageFile);
           if (up.error) {
-            console.error("uploadMemberPhoto error", up.error);
+            const eAny = up.error as any;
+            const msg = String(eAny?.message ?? String(up.error));
+            console.error("uploadMemberPhoto error:", msg);
+            setUploadError(msg);
+            setToast({ message: `Upload failed: ${msg}`, type: "error" });
           } else {
             photoUrl = up.data?.publicUrl ?? photoUrl;
+            setToast({ message: "Gambar berhasil diunggah", type: "success" });
           }
         }
-        const { data, error } = await insertMember({
-          name: newItem.name,
-          role: newItem.role,
-          photo: photoUrl,
+        const res = await fetch("/api/members/add", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name: newItem.name,
+            role: newItem.role,
+            photo: photoUrl,
+          }),
         });
-        if (error) console.error("insertMember error", error);
+        const json = await res.json();
+        if (!res.ok) {
+          const err = json?.error?.message ?? json?.error ?? "Unknown error";
+          console.error("server addMember error", err);
+          setToast({ message: `Tambah pengurus gagal: ${err}`, type: "error" });
+        } else {
+          setToast({
+            message: "Pengurus berhasil ditambahkan",
+            type: "success",
+          });
+          // refresh the list from server so ordering/ids/positions are accurate
+          try {
+            const { data: fetched, error: fetchErr } = await fetchMembers();
+            if (!fetchErr && fetched && fetched.length > 0) {
+              const mapped = fetched.map((d: unknown) => {
+                const r = d as Record<string, unknown>;
+                return {
+                  id: r.id ? String(r.id) : Date.now().toString(),
+                  name: typeof r.name === "string" ? r.name : "",
+                  role: typeof r.role === "string" ? r.role : "",
+                  image: typeof r.photo === "string" ? r.photo : "",
+                } as Pengurus;
+              });
+              setPengurus(mapped);
+            }
+          } catch (e) {
+            // ignore refresh errors
+          }
+        }
       } catch (e) {
         console.error("insertMember exception", e);
+        setToast({
+          message: `Tambah pengurus gagal: ${String(e)}`,
+          type: "error",
+        });
       }
     })();
   };
@@ -77,9 +130,114 @@ export default function AdminPengurus() {
 
   const removeRemote = (id: string) => {
     (async () => {
-      const { data, error } = await deleteMember(id);
-      if (error) console.error("deleteMember error", error);
+      try {
+        const res = await fetch("/api/members/delete", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id }),
+        });
+        const json = await res.json();
+        if (!res.ok) {
+          const err = json?.error?.message ?? json?.error ?? "Unknown error";
+          console.error("server deleteMember error", err);
+          setToast({ message: `Hapus pengurus gagal: ${err}`, type: "error" });
+        } else {
+          setToast({ message: "Pengurus berhasil dihapus", type: "success" });
+          // refresh list so positions/order are consistent
+          try {
+            const { data: fetched, error: fetchErr } = await fetchMembers();
+            if (!fetchErr && fetched && fetched.length > 0) {
+              const mapped = fetched.map((d: unknown) => {
+                const r = d as Record<string, unknown>;
+                return {
+                  id: r.id ? String(r.id) : Date.now().toString(),
+                  name: typeof r.name === "string" ? r.name : "",
+                  role: typeof r.role === "string" ? r.role : "",
+                  image: typeof r.photo === "string" ? r.photo : "",
+                } as Pengurus;
+              });
+              setPengurus(mapped);
+            }
+          } catch (e) {
+            // ignore
+          }
+        }
+      } catch (e) {
+        console.error("deleteMember exception", e);
+        setToast({
+          message: `Hapus pengurus gagal: ${String(e)}`,
+          type: "error",
+        });
+      }
     })();
+  };
+
+  const startEdit = (p: Pengurus) => {
+    setEditingId(p.id);
+    setName(p.name || "");
+    setRole(p.role || "");
+    setImage(p.image || "");
+    setIsModalOpen(true);
+  };
+
+  const saveEdit = async () => {
+    if (!editingId) return;
+    let photoUrl = image;
+    try {
+      setUploadError(null);
+      if (newImageFile) {
+        const up = await uploadMemberPhoto(newImageFile);
+        if (up.error) {
+          const eAny = up.error as any;
+          const msg = String(eAny?.message ?? String(up.error));
+          console.error("uploadMemberPhoto error:", msg);
+          setUploadError(msg);
+        } else photoUrl = up.data?.publicUrl ?? photoUrl;
+      }
+
+      const res = await fetch("/api/members/update", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: editingId, name, role, photo: photoUrl }),
+      });
+      const json = await res.json();
+      if (!res.ok)
+        console.error("server updateMember error", json?.error || json);
+
+      // optimistic update local state
+      setPengurus((s) =>
+        s.map((x) =>
+          x.id === editingId ? { ...x, name, role, image: photoUrl } : x,
+        ),
+      );
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setEditingId(null);
+      setNewImageFile(null);
+      setImage("");
+      setName("");
+      setRole("");
+      setIsModalOpen(false);
+      // refresh list to ensure server ordering/positions are reflected
+      try {
+        const { data: fetched, error: fetchErr } = await fetchMembers();
+        if (!fetchErr && fetched && fetched.length > 0) {
+          const mapped = fetched.map((d: unknown) => {
+            const r = d as Record<string, unknown>;
+            return {
+              id: r.id ? String(r.id) : Date.now().toString(),
+              name: typeof r.name === "string" ? r.name : "",
+              role: typeof r.role === "string" ? r.role : "",
+              image: typeof r.photo === "string" ? r.photo : "",
+            } as Pengurus;
+          });
+          setPengurus(mapped);
+        }
+      } catch (e) {
+        // ignore
+      }
+    }
   };
 
   useEffect(() => {
@@ -104,6 +262,50 @@ export default function AdminPengurus() {
     })();
   }, []);
 
+  const persistOrder = async (ordered: Pengurus[]) => {
+    try {
+      const ids = ordered.map((x) => x.id);
+      const res = await fetch("/api/members/reorder", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ order: ids }),
+      });
+      if (!res.ok) {
+        const json = await res.json().catch(() => null);
+        const err = json?.error?.message ?? json?.error ?? "Unknown error";
+        console.error("reorder error", err);
+        setToast({ message: "Gagal menyimpan urutan", type: "error" });
+      }
+    } catch (e) {
+      console.error("persistOrder error", e);
+      setToast({ message: "Gagal menyimpan urutan", type: "error" });
+    }
+  };
+
+  const moveUp = (index: number) => {
+    if (index <= 0) return;
+    setPengurus((prev) => {
+      const next = [...prev];
+      const temp = next[index - 1];
+      next[index - 1] = next[index];
+      next[index] = temp;
+      persistOrder(next);
+      return next;
+    });
+  };
+
+  const moveDown = (index: number) => {
+    if (index >= pengurus.length - 1) return;
+    setPengurus((prev) => {
+      const next = [...prev];
+      const temp = next[index + 1];
+      next[index + 1] = next[index];
+      next[index] = temp;
+      persistOrder(next);
+      return next;
+    });
+  };
+
   return (
     <section className="py-12">
       <div className="flex items-center justify-between mb-4">
@@ -118,7 +320,7 @@ export default function AdminPengurus() {
 
       <div className="bg-white rounded shadow overflow-hidden">
         <ul>
-          {pengurus.map((p) => (
+          {pengurus.map((p, idx) => (
             <li
               key={p.id}
               className="flex items-center justify-between p-3 border-t"
@@ -139,9 +341,36 @@ export default function AdminPengurus() {
                   <div className="text-sm text-gray-500">{p.role}</div>
                 </div>
               </div>
-              <div>
+              <div className="flex items-center gap-3">
+                <div className="flex flex-col">
+                  <button
+                    onClick={() => moveUp(idx)}
+                    disabled={idx === 0}
+                    title="Naikkan"
+                    className="text-sm text-gray-600 disabled:opacity-40"
+                  >
+                    ▲
+                  </button>
+                  <button
+                    onClick={() => moveDown(idx)}
+                    disabled={idx === pengurus.length - 1}
+                    title="Turunkan"
+                    className="text-sm text-gray-600 disabled:opacity-40"
+                  >
+                    ▼
+                  </button>
+                </div>
                 <button
-                  onClick={() => remove(p.id)}
+                  onClick={() => startEdit(p)}
+                  className="text-sm text-blue-600"
+                >
+                  Edit
+                </button>
+                <button
+                  onClick={() => {
+                    // ask for confirmation
+                    setDeleteTarget(p.id);
+                  }}
                   className="text-sm text-red-600"
                 >
                   Hapus
@@ -184,6 +413,9 @@ export default function AdminPengurus() {
                   className="w-20 h-20 rounded object-cover border"
                 />
               )}
+              {uploadError && (
+                <div className="mt-2 text-sm text-red-600">{uploadError}</div>
+              )}
             </div>
 
             <div className="mt-5 flex justify-end gap-2">
@@ -193,15 +425,64 @@ export default function AdminPengurus() {
               >
                 Batal
               </button>
+              {editingId ? (
+                <button
+                  onClick={saveEdit}
+                  className="px-3 py-1 rounded bg-blue-600 text-white"
+                >
+                  Simpan Perubahan
+                </button>
+              ) : (
+                <button
+                  onClick={add}
+                  className="px-3 py-1 rounded bg-black text-white"
+                >
+                  Simpan
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+      {/* delete confirmation modal */}
+      {deleteTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="w-full max-w-sm rounded-lg bg-white p-4 shadow-lg">
+            <h3 className="text-lg font-bold mb-2">Konfirmasi Hapus</h3>
+            <p className="text-sm text-gray-700">
+              Apakah Anda yakin ingin menghapus pengurus ini? Tindakan ini tidak
+              dapat dibatalkan.
+            </p>
+            <div className="mt-4 flex justify-end gap-2">
               <button
-                onClick={add}
-                className="px-3 py-1 rounded bg-black text-white"
+                onClick={() => setDeleteTarget(null)}
+                className="px-3 py-1 rounded border"
               >
-                Simpan
+                Batal
+              </button>
+              <button
+                onClick={() => {
+                  // optimistic remove locally, then call server
+                  remove(deleteTarget);
+                  removeRemote(deleteTarget);
+                  setDeleteTarget(null);
+                }}
+                className="px-3 py-1 rounded bg-red-600 text-white"
+              >
+                Hapus
               </button>
             </div>
           </div>
         </div>
+      )}
+
+      {/* toast */}
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
       )}
     </section>
   );
