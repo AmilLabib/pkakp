@@ -6,7 +6,11 @@ import { ArrowLeft } from "lucide-react";
 import { motion } from "framer-motion";
 import ArticleCard, { type Article } from "./ArticleCard";
 import { fetchArticles } from "../../lib/supabaseClient";
-import { extractFirstImageSrc, removeFirstImageTag } from "../../lib/excerpt";
+import {
+  excerptFromHtml,
+  extractFirstImageSrc,
+  removeFirstImageTag,
+} from "../../lib/excerpt";
 
 const easeOut = [0.22, 1, 0.36, 1] as const;
 
@@ -53,10 +57,11 @@ export default function ArticlesSection() {
             const finalDesc = imageFromContent
               ? removeFirstImageTag(descHtml)
               : descHtml;
+            const finalDescText = excerptFromHtml(finalDesc, 2);
 
             return {
               title: d.title || "",
-              desc: finalDesc,
+              desc: finalDescText,
               date: d.created_at
                 ? new Date(d.created_at).toLocaleDateString()
                 : "",
