@@ -121,6 +121,9 @@ export default function AdminClientLayout({
               >
                 Pengurus
               </Link>
+              <Link href="/admin/galeri" className={linkClass("/admin/galeri")}>
+                Galeri Kegiatan
+              </Link>
               <Link
                 href="/admin/prestasi"
                 className={linkClass("/admin/prestasi")}
@@ -178,6 +181,13 @@ export default function AdminClientLayout({
               onClick={() => setMenuOpen(false)}
             >
               Pengurus
+            </Link>
+            <Link
+              href="/admin/galeri"
+              className={linkClass("/admin/galeri")}
+              onClick={() => setMenuOpen(false)}
+            >
+              Galeri Kegiatan
             </Link>
             <Link
               href="/admin/prestasi"

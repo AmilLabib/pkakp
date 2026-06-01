@@ -183,7 +183,7 @@ export default function Navbar() {
                       Struktur Organisasi
                     </Link>
                     <Link
-                      href="/#artikel"
+                      href="/galeri"
                       className="block px-8 py-3 text-sm leading-[1.2] tracking-[-0.03em] text-black hover:bg-[linear-gradient(180deg,#FFF2AE_0%,#FFC31A_100%)]"
                       onClick={closeTentangMenu}
                     >
@@ -311,7 +311,7 @@ export default function Navbar() {
                     <span className="relative z-10">Struktur Organisasi</span>
                   </Link>
                   <Link
-                    href="/#artikel"
+                    href="/galeri"
                     className="relative flex items-center w-full px-3 py-2 text-sm text-[#171b23] overflow-hidden after:content-[''] after:absolute after:inset-0 after:bg-linear-to-t after:from-[#f4c42e] after:to-transparent after:opacity-0 hover:after:opacity-100 after:transition-opacity after:duration-300 after:pointer-events-none"
                     onClick={closeMobileMenu}
                   >

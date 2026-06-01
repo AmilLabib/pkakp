@@ -128,6 +128,95 @@ export async function updatePrestasi(
   }
 }
 
+// === Galeri helpers ===
+export async function insertGaleri(payload: {
+  title: string;
+  desc?: string;
+  image?: string;
+}) {
+  try {
+    const { data, error } = await supabase.from("galeri").insert([
+      {
+        title: payload.title,
+        desc: payload.desc || "",
+        image: payload.image || "",
+      },
+    ]);
+    return { data, error };
+  } catch (e) {
+    return { data: null, error: e };
+  }
+}
+
+export async function fetchGaleri() {
+  const { data, error } = await supabase
+    .from("galeri")
+    .select("*")
+    .order("created_at", { ascending: false });
+  return { data, error };
+}
+
+export async function deleteGaleri(id: string) {
+  try {
+    const { data, error } = await supabase
+      .from("galeri")
+      .delete()
+      .match({ id });
+    return { data, error };
+  } catch (e) {
+    return { data: null, error: e };
+  }
+}
+
+export async function updateGaleri(
+  id: string,
+  payload: { title?: string; desc?: string; image?: string },
+) {
+  try {
+    const { data, error } = await supabase
+      .from("galeri")
+      .update({
+        ...(payload.title !== undefined ? { title: payload.title } : {}),
+        ...(payload.desc !== undefined ? { desc: payload.desc } : {}),
+        ...(payload.image !== undefined ? { image: payload.image } : {}),
+      })
+      .match({ id });
+    return { data, error };
+  } catch (e) {
+    return { data: null, error: e };
+  }
+}
+
+export async function uploadGaleriImage(file: File) {
+  const filename = `galeri/${Date.now()}-${file.name}`;
+  try {
+    const dataUrl = await new Promise<string>((resolve, reject) => {
+      const fr = new FileReader();
+      fr.onload = () => resolve(String(fr.result));
+      fr.onerror = (err) => reject(err);
+      fr.readAsDataURL(file);
+    });
+
+    const res = await fetch("/api/upload-member-photo", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ filename, dataUrl }),
+    });
+    const json = await res.json();
+    if (!res.ok)
+      return {
+        data: null,
+        error: new Error(json?.error?.message || json?.error || "upload failed"),
+      };
+    return {
+      data: { publicUrl: json?.data?.publicUrl ?? json?.publicUrl ?? "" },
+      error: null,
+    };
+  } catch (e) {
+    return { data: null, error: e };
+  }
+}
+
 export async function insertMember(payload: {
   name: string;
   role?: string;
