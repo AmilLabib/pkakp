@@ -3,12 +3,13 @@ import { redirect } from "next/navigation";
 import jwt from "jsonwebtoken";
 import AdminClientLayout from "./AdminClientLayout";
 
-export default function AdminLayout({
+export default async function AdminLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const token = cookies().get("pkakp_admin_token")?.value;
+  const cookieStore = await cookies();
+  const token = cookieStore.get("pkakp_admin_token")?.value;
   const secret = process.env.ADMIN_JWT_SECRET;
 
   if (!token || !secret) redirect("/login");
