@@ -14,6 +14,11 @@ export default function AdminClientLayout({
   const isPreviewPage = pathname?.startsWith("/admin/artikel/preview");
   const [menuOpen, setMenuOpen] = useState(false);
 
+  const linkClass = (href: string, exact = false) => {
+    const active = exact ? pathname === href : pathname?.startsWith(href || "");
+    return `px-3 py-2 rounded ${active ? "bg-gray-100 font-medium text-gray-900" : "hover:bg-gray-100 text-gray-700"}`;
+  };
+
   useEffect(() => {
     // On admin pages we normally hide global header/footer via body.no-navbar.
     // But for the preview page we want to show the public Navbar/Footer while
@@ -33,7 +38,7 @@ export default function AdminClientLayout({
     try {
       await fetch("/api/admin/logout", { method: "POST" });
     } catch {}
-    router.push("/login");
+    router.push("/");
   };
 
   // If this is the preview page, render a simplified wrapper so the preview
@@ -101,27 +106,24 @@ export default function AdminClientLayout({
             </div>
 
             <nav className="flex flex-col gap-2">
-              <Link
-                href="/admin"
-                className="text-left px-3 py-2 rounded bg-gray-100"
-              >
+              <Link href="/admin" className={linkClass("/admin", true)}>
                 Dashboard
               </Link>
               <Link
                 href="/admin/artikel"
-                className="px-3 py-2 rounded hover:bg-gray-100"
+                className={linkClass("/admin/artikel")}
               >
                 Artikel
               </Link>
               <Link
                 href="/admin/pengurus"
-                className="px-3 py-2 rounded hover:bg-gray-100"
+                className={linkClass("/admin/pengurus")}
               >
                 Pengurus
               </Link>
               <Link
                 href="/admin/prestasi"
-                className="px-3 py-2 rounded hover:bg-gray-100"
+                className={linkClass("/admin/prestasi")}
               >
                 Prestasi
               </Link>
@@ -158,28 +160,28 @@ export default function AdminClientLayout({
           <nav className="flex flex-col gap-2">
             <Link
               href="/admin"
-              className="text-left px-3 py-2 rounded bg-gray-100"
+              className={linkClass("/admin", true)}
               onClick={() => setMenuOpen(false)}
             >
               Dashboard
             </Link>
             <Link
               href="/admin/artikel"
-              className="px-3 py-2 rounded hover:bg-gray-100"
+              className={linkClass("/admin/artikel")}
               onClick={() => setMenuOpen(false)}
             >
               Artikel
             </Link>
             <Link
               href="/admin/pengurus"
-              className="px-3 py-2 rounded hover:bg-gray-100"
+              className={linkClass("/admin/pengurus")}
               onClick={() => setMenuOpen(false)}
             >
               Pengurus
             </Link>
             <Link
               href="/admin/prestasi"
-              className="px-3 py-2 rounded hover:bg-gray-100"
+              className={linkClass("/admin/prestasi")}
               onClick={() => setMenuOpen(false)}
             >
               Prestasi
@@ -189,7 +191,7 @@ export default function AdminClientLayout({
                 setMenuOpen(false);
                 handleLogout();
               }}
-              className="mt-4 text-sm bg-red-50 text-red-700 px-3 py-2 rounded"
+              className="mt-4 text-sm bg-red-50 text-red-700 px-3 py-2 rounded cursor-pointer"
             >
               Logout
             </button>
