@@ -78,6 +78,12 @@ body {
   width: 100%;
 }
 
+/* Justify paragraphs inside prose (article content) */
+.prose p {
+  text-align: justify;
+  text-justify: inter-word;
+}
+
 /* Hide global header and footer when a page requests a simplified layout */
 body.no-navbar header,
 body.no-navbar footer {
