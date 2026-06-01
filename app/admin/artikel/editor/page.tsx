@@ -30,6 +30,8 @@ export default function AdminArtikelEditorPage() {
   const [title, setTitle] = useState("");
   const [author, setAuthor] = useState("");
   const [content, setContent] = useState("");
+  const [userRole, setUserRole] = useState<string | null>(null);
+  const [isAuthorReadonly, setIsAuthorReadonly] = useState(false);
   const router = useRouter();
   const [showPublishedModal, setShowPublishedModal] = useState(false);
   const [toast, setToast] = useState<{
@@ -50,6 +52,26 @@ export default function AdminArtikelEditorPage() {
     } catch {
       // ignore invalid draft format
     }
+  }, []);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch("/api/admin/me");
+        if (!res.ok) return;
+        const json = await res.json();
+        const payload = json?.payload || {};
+        const role = payload?.role;
+        const name = payload?.name || payload?.email || "";
+        if (role === "staf") {
+          setAuthor(name);
+          setIsAuthorReadonly(true);
+        }
+        setUserRole(role ?? null);
+      } catch (e) {
+        // ignore
+      }
+    })();
   }, []);
 
   useEffect(() => {
@@ -154,6 +176,7 @@ export default function AdminArtikelEditorPage() {
           onChange={(e) => setAuthor(e.target.value)}
           placeholder="Nama penulis"
           className="w-full border px-3 py-2 rounded"
+          readOnly={isAuthorReadonly}
         />
       </div>
 

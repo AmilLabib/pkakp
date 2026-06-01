@@ -1,9 +1,10 @@
 "use client";
 
-import { useRef } from "react";
+import { useRef, useEffect, useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import AchievementCard from "./AchievementCard";
+import { fetchPrestasi } from "../../lib/supabaseClient";
 
 const easeOut = [0.22, 1, 0.36, 1] as const;
 
@@ -12,23 +13,33 @@ type Achievement = {
   imageSrc: string;
 };
 
-const achievements: Achievement[] = [
-  { title: "Juara 1 Lomba Akuntansi Nasional", imageSrc: "/prestasi/1.png" },
-  { title: "Finalis Kompetisi Inovasi Siswa", imageSrc: "/prestasi/2.png" },
-  { title: "Best Team Project Kewirausahaan", imageSrc: "/prestasi/3.png" },
-  { title: "Juara 2 Olimpiade Ekonomi", imageSrc: "/prestasi/4.png" },
-  { title: "Penerima Penghargaan Kepemimpinan", imageSrc: "/prestasi/5.png" },
-  {
-    title: "Delegasi Seminar Nasional Pendidikan",
-    imageSrc: "/prestasi/6.png",
-  },
-];
+// load from Supabase and show newest first (fetchPrestasi orders by created_at desc)
+const defaultAchievements: Achievement[] = [];
 
 export default function AchievementsSection() {
   const scrollRef = useRef<HTMLDivElement>(null);
   const isDownRef = useRef(false);
   const startXRef = useRef(0);
   const scrollLeftRef = useRef(0);
+  const [achievements, setAchievements] =
+    useState<Achievement[]>(defaultAchievements);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const { data, error } = await fetchPrestasi();
+        if (!error && data) {
+          const mapped = data.map((d: any) => ({
+            title: d.title || "",
+            imageSrc: d.image || "/prestasi/1.png",
+          }));
+          setAchievements(mapped);
+        }
+      } catch (e) {
+        // ignore
+      }
+    })();
+  }, []);
 
   const onMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!scrollRef.current) return;

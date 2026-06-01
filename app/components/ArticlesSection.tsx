@@ -5,79 +5,18 @@ import { useRouter } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { motion } from "framer-motion";
 import ArticleCard, { type Article } from "./ArticleCard";
+import { fetchArticles } from "../../lib/supabaseClient";
+import { extractFirstImageSrc, removeFirstImageTag } from "../../lib/excerpt";
 
 const easeOut = [0.22, 1, 0.36, 1] as const;
 
-const articles: Article[] = [
-  {
-    title:
-      "Pemerintah Targetkan Pertumbuhan Ekonomi 8 Persen Melalui Hilirisasi",
-    desc: "Strategi hilirisasi sektor pertambangan dan pertanian diproyeksikan menjadi motor utama penggerak ekonomi nasional dalam lima tahun ke depan.",
-    date: "14 Mei 2026",
-    image: "/artikel/1.jpg",
-  },
-  {
-    title:
-      "Analisis Sentimen Publik: Kepercayaan Terhadap Investasi IKN Meningkat",
-    desc: "Survei terbaru menunjukkan tren positif respons masyarakat terhadap masuknya sejumlah investor asing pada megaproyek Ibu Kota Nusantara.",
-    date: "19 Apr 2025",
-    image: "/artikel/2.jpeg",
-  },
-  {
-    title:
-      "Proyek KPBU Perkeretaapian Dimulai, Kemenhub Gandeng Investor Asing",
-    desc: "Langkah strategis pembiayaan melalui skema KPBU ini diharapkan dapat mempercepat penyelesaian infrastruktur kereta api antarprovinsi secara signifikan.",
-    date: "20 Okt 2024",
-    image: "/artikel/3.jpeg",
-  },
-  {
-    title:
-      "Transformasi Digital Transportasi 2025: Integrasi Layanan Publik Diperluas",
-    desc: "Pemerintah mulai mengimplementasikan sistem tiket elektronik terpadu di berbagai daerah guna meningkatkan mobilitas dan efisiensi masyarakat.",
-    date: "02 Mei 2025",
-    image: "/artikel/4.jpg",
-  },
-  {
-    title:
-      "Evaluasi Kebijakan Pembiayaan Infrastruktur, Mayoritas PSN Selesai Tepat Waktu",
-    desc: "Tinjauan Bappenas menegaskan bahwa inovasi instrumen pembiayaan terbukti efektif mengakselerasi penyelesaian deretan Proyek Strategis Nasional.",
-    date: "18 Jan 2025",
-    image: "/artikel/5.jpeg",
-  },
-  {
-    title:
-      "Era Baru Infrastruktur: Kolaborasi Pemerintah dan Swasta Jadi Kunci Utama",
-    desc: "Menghadapi keterbatasan APBN, pemerintah mendorong skema blended finance untuk menjamin keberlanjutan proyek-proyek strategis daerah.",
-    date: "07 Des 2024",
-    image: "/artikel/6.jpg",
-  },
-  {
-    title:
-      "Tren Investasi Kuartal IV Menguat, Sektor Logistik dan EBT Jadi Primadona",
-    desc: "Data BKPM mencatat adanya lonjakan aliran modal masuk secara tajam pada sektor energi hijau dan rantai pasok logistik menjelang akhir tahun.",
-    date: "25 Nov 2024",
-    image: "/artikel/7.jpg",
-  },
-  {
-    title:
-      "Mitigasi Pembengkakan Biaya, Manajemen Risiko Proyek Strategis Diperketat",
-    desc: "Penerapan standar pengawasan berbasis mitigasi dini diyakini mampu menekan potensi kerugian dan keterlambatan pada infrastruktur berskala besar.",
-    date: "11 Sep 2024",
-    image: "/artikel/8.jpeg",
-  },
-  {
-    title:
-      "Transformasi Pembiayaan Hijau Dipercepat, Proyek Berbasis ESG Semakin Diminati",
-    desc: "Pendekatan pembiayaan berkelanjutan mendorong peningkatan minat investor pada proyek infrastruktur hijau di berbagai wilayah strategis nasional.",
-    date: "03 Agu 2024",
-    image: "/artikel/9.jpeg",
-  },
-];
+// articles will be loaded from Supabase (ordered by created_at desc)
 
 export default function ArticlesSection() {
   const router = useRouter();
   const [itemsPerView, setItemsPerView] = useState(1);
   const [index, setIndex] = useState(0);
+  const [articles, setArticles] = useState<Article[]>([]);
 
   useEffect(() => {
     const updateItemsPerView = () => {
@@ -96,6 +35,40 @@ export default function ArticlesSection() {
     updateItemsPerView();
     window.addEventListener("resize", updateItemsPerView);
     return () => window.removeEventListener("resize", updateItemsPerView);
+  }, []);
+
+  // load articles from Supabase (ordered by created_at desc on server)
+  useEffect(() => {
+    (async () => {
+      try {
+        const { data, error } = await fetchArticles();
+        if (!error && data) {
+          const mapped = data.map((d: any) => {
+            const descHtml = d.desc || "";
+            const imageFromField = d.image && d.image !== "" ? d.image : null;
+            const imageFromContent = !imageFromField
+              ? extractFirstImageSrc(descHtml)
+              : null;
+            const usedImage = imageFromField || imageFromContent || "";
+            const finalDesc = imageFromContent
+              ? removeFirstImageTag(descHtml)
+              : descHtml;
+
+            return {
+              title: d.title || "",
+              desc: finalDesc,
+              date: d.created_at
+                ? new Date(d.created_at).toLocaleDateString()
+                : "",
+              image: usedImage,
+            } as Article;
+          });
+          setArticles(mapped);
+        }
+      } catch (e) {
+        // ignore
+      }
+    })();
   }, []);
 
   const maxIndex = Math.max(0, articles.length - itemsPerView);
@@ -137,12 +110,12 @@ export default function ArticlesSection() {
               viewport={{ once: true, amount: 0.25 }}
               transition={{ duration: 0.6, ease: easeOut, delay: 0.1 }}
             >
-              {articles.map((article) => (
+              {articles.map((article, idx) => (
                 <div
-                  key={article.title}
+                  key={`${article.title}-${idx}`}
                   className="w-full md:w-1/2 lg:w-1/3 shrink-0 px-3 md:px-4 first:pl-0 last:pr-0"
                 >
-                  <ArticleCard article={article} />
+                  <ArticleCard article={article} href={`/artikel/${idx}`} />
                 </div>
               ))}
             </motion.div>

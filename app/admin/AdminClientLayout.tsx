@@ -13,6 +13,16 @@ export default function AdminClientLayout({
   const pathname = usePathname();
   const isPreviewPage = pathname?.startsWith("/admin/artikel/preview");
   const [menuOpen, setMenuOpen] = useState(false);
+  const [userRole, setUserRole] = useState<string | null>(null);
+  const [userName, setUserName] = useState<string | null>(null);
+
+  // preload stored email so name persists across refreshes until logout
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem("pkakp_admin_email");
+      if (stored) setUserName(stored);
+    } catch {}
+  }, []);
 
   const linkClass = (href: string, exact = false) => {
     const active = exact ? pathname === href : pathname?.startsWith(href || "");
@@ -34,9 +44,32 @@ export default function AdminClientLayout({
     };
   }, [isPreviewPage]);
 
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch("/api/admin/me");
+        if (!res.ok) return;
+        const json = await res.json();
+        const payload = json?.payload || {};
+        setUserRole(payload?.role ?? null);
+        const nameOrEmail = payload?.name ?? payload?.email ?? null;
+        setUserName(nameOrEmail);
+        try {
+          if (payload?.email)
+            localStorage.setItem("pkakp_admin_email", payload.email);
+        } catch {}
+      } catch (e) {
+        // ignore
+      }
+    })();
+  }, []);
+
   const handleLogout = async () => {
     try {
       await fetch("/api/admin/logout", { method: "POST" });
+    } catch {}
+    try {
+      localStorage.removeItem("pkakp_admin_email");
     } catch {}
     router.push("/");
   };
@@ -103,6 +136,9 @@ export default function AdminClientLayout({
             <div className="mb-6">
               <h2 className="font-bold text-lg">Admin</h2>
               <p className="text-sm text-gray-600">Kelola konten situs</p>
+              {userName && (
+                <div className="mt-2 text-sm text-gray-700">{userName}</div>
+              )}
             </div>
 
             <nav className="flex flex-col gap-2">
@@ -115,21 +151,28 @@ export default function AdminClientLayout({
               >
                 Artikel
               </Link>
-              <Link
-                href="/admin/pengurus"
-                className={linkClass("/admin/pengurus")}
-              >
-                Pengurus
-              </Link>
-              <Link href="/admin/galeri" className={linkClass("/admin/galeri")}>
-                Galeri Kegiatan
-              </Link>
-              <Link
-                href="/admin/prestasi"
-                className={linkClass("/admin/prestasi")}
-              >
-                Prestasi
-              </Link>
+              {userRole === "admin" && (
+                <>
+                  <Link
+                    href="/admin/pengurus"
+                    className={linkClass("/admin/pengurus")}
+                  >
+                    Pengurus
+                  </Link>
+                  <Link
+                    href="/admin/galeri"
+                    className={linkClass("/admin/galeri")}
+                  >
+                    Galeri Kegiatan
+                  </Link>
+                  <Link
+                    href="/admin/prestasi"
+                    className={linkClass("/admin/prestasi")}
+                  >
+                    Prestasi
+                  </Link>
+                </>
+              )}
               <button
                 onClick={handleLogout}
                 className="mt-4 text-sm bg-red-50 text-red-700 px-3 py-2 rounded"
@@ -175,27 +218,31 @@ export default function AdminClientLayout({
             >
               Artikel
             </Link>
-            <Link
-              href="/admin/pengurus"
-              className={linkClass("/admin/pengurus")}
-              onClick={() => setMenuOpen(false)}
-            >
-              Pengurus
-            </Link>
-            <Link
-              href="/admin/galeri"
-              className={linkClass("/admin/galeri")}
-              onClick={() => setMenuOpen(false)}
-            >
-              Galeri Kegiatan
-            </Link>
-            <Link
-              href="/admin/prestasi"
-              className={linkClass("/admin/prestasi")}
-              onClick={() => setMenuOpen(false)}
-            >
-              Prestasi
-            </Link>
+            {userRole === "admin" && (
+              <>
+                <Link
+                  href="/admin/pengurus"
+                  className={linkClass("/admin/pengurus")}
+                  onClick={() => setMenuOpen(false)}
+                >
+                  Pengurus
+                </Link>
+                <Link
+                  href="/admin/galeri"
+                  className={linkClass("/admin/galeri")}
+                  onClick={() => setMenuOpen(false)}
+                >
+                  Galeri Kegiatan
+                </Link>
+                <Link
+                  href="/admin/prestasi"
+                  className={linkClass("/admin/prestasi")}
+                  onClick={() => setMenuOpen(false)}
+                >
+                  Prestasi
+                </Link>
+              </>
+            )}
             <button
               onClick={() => {
                 setMenuOpen(false);

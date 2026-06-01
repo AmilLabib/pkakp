@@ -39,6 +39,7 @@ export default function AdminIndex() {
   const [membersCount, setMembersCount] = useState<Count>(null);
   const [prestasiCount, setPrestasiCount] = useState<Count>(null);
   const [galeriCount, setGaleriCount] = useState<Count>(null);
+  const [displayName, setDisplayName] = useState<string | null>(null);
 
   useEffect(() => {
     let mounted = true;
@@ -82,11 +83,27 @@ export default function AdminIndex() {
     };
   }, []);
 
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch("/api/admin/me");
+        if (!res.ok) return;
+        const json = await res.json();
+        const payload = json?.payload || {};
+        setDisplayName(payload?.name ?? payload?.email ?? null);
+      } catch (e) {
+        // ignore
+      }
+    })();
+  }, []);
+
   return (
     <section className="py-12">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-extrabold">Admin Dashboard</h1>
-        <div className="text-sm text-gray-600">Halo, Admin</div>
+        <div className="text-sm text-gray-600">
+          Halo, {displayName || "Admin"}
+        </div>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
