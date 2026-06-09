@@ -4,10 +4,12 @@ import { createClient } from "@supabase/supabase-js";
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { id, name, role, photo } = body as {
+    const { id, name, role, photo, role_group, staff_category } = body as {
       id: string;
       name?: string;
       role?: string;
+      role_group?: string | null;
+      staff_category?: string | null;
       photo?: string;
     };
     if (!id)
@@ -44,6 +46,8 @@ export async function POST(req: Request) {
       .update({
         ...(name !== undefined ? { name } : {}),
         ...(role !== undefined ? { role } : {}),
+        ...(role_group !== undefined ? { role_group } : {}),
+        ...(staff_category !== undefined ? { staff_category } : {}),
         ...(photo !== undefined ? { photo } : {}),
       })
       .match({ id });

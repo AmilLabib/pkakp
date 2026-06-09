@@ -1,7 +1,16 @@
+"use client";
+
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import ImageWithPlaceholder from "./shared/ImageWithPlaceholder";
+import {
+  fetchArticleLikeCount,
+  fetchArticleCommentCount,
+  toggleArticleLike,
+} from "../../lib/supabaseClient";
 
 export type Article = {
+  id?: string; // optional DB id (uuid)
   title: string;
   desc: string;
   date: string;
@@ -15,6 +24,62 @@ export default function ArticleCard({
   article: Article;
   href?: string;
 }) {
+  const [likes, setLikes] = useState<number>(0);
+  const [comments, setComments] = useState<number>(0);
+  const [processingLike, setProcessingLike] = useState(false);
+
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        if (article.id) {
+          const l = await fetchArticleLikeCount(String(article.id));
+          const c = await fetchArticleCommentCount(String(article.id));
+          if (mounted) {
+            setLikes(l.count ?? 0);
+            setComments(c.count ?? 0);
+          }
+        }
+      } catch (e) {
+        // ignore
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, [article.id]);
+
+  const handleLike = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (!article.id) return;
+    setProcessingLike(true);
+    try {
+      // ensure user logged in (admin/staf session)
+      const res = await fetch("/api/admin/me");
+      if (!res.ok) {
+        window.location.href = "/login";
+        return;
+      }
+      const json = await res.json();
+      const payload = json?.payload || {};
+      const name = payload?.name || payload?.email || "";
+      const email = payload?.email || null;
+
+      const out = await toggleArticleLike({
+        article_id: String(article.id),
+        user_name: name,
+        user_email: email || undefined,
+      });
+      if (out && (out as any).count !== undefined) {
+        setLikes((out as any).count ?? likes);
+      }
+    } catch (err) {
+      // ignore
+    } finally {
+      setProcessingLike(false);
+    }
+  };
+
   const card = (
     <article className="bg-white border border-[#d5d5d5] rounded-xl p-3 shadow-sm w-full">
       <div className="w-full overflow-hidden rounded-md h-44 md:h-64 relative">
@@ -35,7 +100,47 @@ export default function ArticleCard({
       <p className="mt-2 text-sm text-[#171b23] leading-snug line-clamp-3 font-poppins">
         {article.desc}
       </p>
-      <p className="mt-2 text-sm text-[#171b23] font-poppins">{article.date}</p>
+      <div className="mt-3 flex items-center justify-between">
+        <p className="text-sm text-[#171b23] font-poppins">{article.date}</p>
+        <div className="flex gap-2 items-center">
+          <button
+            onClick={handleLike}
+            className={`px-3 py-2 rounded-md bg-white border text-sm flex items-center gap-2 ${processingLike ? "opacity-60" : "hover:bg-gray-50"}`}
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="#000"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 0 0 0-7.78z"></path>
+            </svg>
+            <span>{likes}</span>
+          </button>
+
+          <div className="px-3 py-2 rounded-md bg-white border text-sm flex items-center gap-2">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="#000"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+            </svg>
+            <span>{comments}</span>
+          </div>
+        </div>
+      </div>
     </article>
   );
 

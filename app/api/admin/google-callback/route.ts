@@ -86,6 +86,7 @@ export async function GET(req: NextRequest) {
 
     const email = info.email as string | undefined;
     const name = info.name as string | undefined;
+    const picture = info.picture as string | undefined;
 
     const allowedDomain = process.env.PKN_STAF_DOMAIN || "pknstan.ac.id";
     if (!email || !email.endsWith(`@${allowedDomain}`)) {
@@ -102,7 +103,7 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    const token = jwt.sign({ role: "staf", email, name }, jwtSecret, {
+    const token = jwt.sign({ role: "staf", email, name, picture }, jwtSecret, {
       expiresIn: "1d",
     });
 

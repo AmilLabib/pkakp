@@ -2,13 +2,18 @@
 
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { fetchArticles, deleteArticle } from "../../../lib/supabaseClient";
+import {
+  fetchAdminArticles,
+  deleteArticle,
+  fetchArticles,
+} from "../../../lib/supabaseClient";
 import Toast from "../../components/Toast";
 
 type Article = {
   id: string;
   title: string;
   desc: string;
+  author: string;
   date: string;
   image: string;
 };
@@ -31,11 +36,16 @@ export default function AdminArtikel() {
     type?: "info" | "success" | "error";
   } | null>(null);
   const router = useRouter();
+  const [currentUser, setCurrentUser] = useState<{
+    name?: string;
+    email?: string;
+    role?: string;
+  } | null>(null);
 
   useEffect(() => {
     (async () => {
       try {
-        const { data, error } = await fetchArticles();
+        const { data, error } = await fetchAdminArticles();
         if (!error && data && data.length > 0) {
           const mapped = (data as ArticleRow[]).map((d) => ({
             id: String(d.id ?? ""),
@@ -53,6 +63,23 @@ export default function AdminArtikel() {
         console.error("Gagal memuat artikel awal:", err);
       }
     })();
+
+    // fetch current admin identity for ownership checks
+    (async () => {
+      try {
+        const res = await fetch("/api/admin/me");
+        if (!res.ok) return;
+        const json = await res.json();
+        const payload = json?.payload || {};
+        setCurrentUser({
+          name: payload?.name || "",
+          email: payload?.email || "",
+          role: payload?.role,
+        });
+      } catch (e) {
+        // ignore
+      }
+    })();
   }, []);
 
   const openEditor = (idx?: number) => {
@@ -67,6 +94,31 @@ export default function AdminArtikel() {
       sessionStorage.removeItem("admin-article-draft");
       router.push("/admin/artikel/editor");
       return;
+    }
+  };
+
+  const viewArticle = async (idx: number) => {
+    const target = articles[idx];
+    if (!target || !target.id) {
+      setToast({ message: "Artikel tidak tersedia untuk dilihat", type: "error" });
+      return;
+    }
+    try {
+      const { data, error } = await fetchArticles();
+      if (error || !Array.isArray(data)) {
+        setToast({ message: "Gagal memuat daftar publik artikel", type: "error" });
+        return;
+      }
+      const foundIndex = (data as any[]).findIndex(
+        (d) => String(d.id) === String(target.id),
+      );
+      if (foundIndex === -1) {
+        setToast({ message: "Artikel tidak ditemukan pada halaman publik", type: "error" });
+        return;
+      }
+      router.push(`/artikel/${foundIndex}`);
+    } catch (e) {
+      setToast({ message: "Terjadi kesalahan saat membuka artikel", type: "error" });
     }
   };
 
@@ -143,17 +195,58 @@ export default function AdminArtikel() {
                 <td className="p-3 text-sm text-gray-600">{a.date}</td>
                 <td className="p-3">
                   <button
-                    onClick={() => openEditor(i)}
-                    className="text-sm text-blue-600 mr-3 hover:underline"
+                    onClick={() => viewArticle(i)}
+                    className="text-sm text-green-600 mr-3 hover:underline"
                   >
-                    Edit
+                    Lihat
                   </button>
-                  <button
-                    onClick={() => remove(i)}
-                    className="text-sm text-red-600 hover:underline"
-                  >
-                    Hapus
-                  </button>
+                  {(!currentUser ||
+                    currentUser.role === "admin" ||
+                    a.author === currentUser.name ||
+                    a.author === currentUser.email ||
+                    (currentUser.name &&
+                      (a.author || "")
+                        .toLowerCase()
+                        .includes(currentUser.name.toLowerCase())) ||
+                    (currentUser.email &&
+                      (a.author || "")
+                        .toLowerCase()
+                        .includes(currentUser.email.toLowerCase()))) && (
+                    <>
+                      <button
+                        onClick={() => openEditor(i)}
+                        className="text-sm text-blue-600 mr-3 hover:underline"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => remove(i)}
+                        className="text-sm text-red-600 hover:underline"
+                      >
+                        Hapus
+                      </button>
+                    </>
+                  )}
+                  {currentUser &&
+                    currentUser.role !== "admin" &&
+                    a.author !== currentUser.name &&
+                    a.author !== currentUser.email &&
+                    !(
+                      currentUser.name &&
+                      (a.author || "")
+                        .toLowerCase()
+                        .includes(currentUser.name.toLowerCase())
+                    ) &&
+                    !(
+                      currentUser.email &&
+                      (a.author || "")
+                        .toLowerCase()
+                        .includes(currentUser.email.toLowerCase())
+                    ) && (
+                      <span className="text-sm text-gray-500">
+                        (Bukan milik Anda)
+                      </span>
+                    )}
                 </td>
               </tr>
             ))}

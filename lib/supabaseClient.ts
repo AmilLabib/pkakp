@@ -16,26 +16,59 @@ export async function insertArticle(payload: {
   author?: string;
 }) {
   try {
-    const { data, error } = await supabase.from("articles").insert([
-      {
-        title: payload.title,
-        desc: payload.desc,
-        image: payload.image || "",
-        ...(payload.author !== undefined ? { author: payload.author } : {}),
-      },
-    ]);
+    const res = await fetch("/api/admin/articles", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify(payload),
+    });
+    const json = await res.json();
+    if (!res.ok)
+      return {
+        data: null,
+        error: json?.error || new Error("Failed to create article"),
+      };
+    return { data: json.data, error: json.error ?? null };
+  } catch (e) {
+    return { data: null, error: e };
+  }
+}
+
+export async function fetchArticles(options?: { onlyOwnedBy?: string | null }) {
+  try {
+    let query = supabase
+      .from("articles")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (options && options.onlyOwnedBy) {
+      query = query.eq("author", options.onlyOwnedBy);
+    }
+
+    const { data, error } = await query;
     return { data, error };
   } catch (e) {
     return { data: null, error: e };
   }
 }
 
-export async function fetchArticles() {
-  const { data, error } = await supabase
-    .from("articles")
-    .select("*")
-    .order("created_at", { ascending: false });
-  return { data, error };
+// Fetch articles via server-admin endpoint (will include auth cookie)
+export async function fetchAdminArticles() {
+  try {
+    const res = await fetch("/api/admin/articles", {
+      method: "GET",
+      credentials: "include",
+    });
+    const json = await res.json();
+    if (!res.ok)
+      return {
+        data: null,
+        error: json?.error || new Error("Failed to fetch admin articles"),
+      };
+    return { data: json?.data ?? json, error: json?.error ?? null };
+  } catch (e) {
+    return { data: null, error: e };
+  }
 }
 
 export async function updateArticle(
@@ -43,16 +76,22 @@ export async function updateArticle(
   payload: { title?: string; desc?: string; image?: string; author?: string },
 ) {
   try {
-    const { data, error } = await supabase
-      .from("articles")
-      .update({
-        ...(payload.title !== undefined ? { title: payload.title } : {}),
-        ...(payload.desc !== undefined ? { desc: payload.desc } : {}),
-        ...(payload.image !== undefined ? { image: payload.image } : {}),
-        ...(payload.author !== undefined ? { author: payload.author } : {}),
-      })
-      .match({ id });
-    return { data, error };
+    const res = await fetch(
+      `/api/admin/articles/${encodeURIComponent(String(id))}`,
+      {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(payload),
+      },
+    );
+    const json = await res.json();
+    if (!res.ok)
+      return {
+        data: null,
+        error: json?.error || new Error("Failed to update article"),
+      };
+    return { data: json.data, error: json.error ?? null };
   } catch (e) {
     return { data: null, error: e };
   }
@@ -60,11 +99,20 @@ export async function updateArticle(
 
 export async function deleteArticle(id: string) {
   try {
-    const { data, error } = await supabase
-      .from("articles")
-      .delete()
-      .match({ id });
-    return { data, error };
+    const res = await fetch(
+      `/api/admin/articles/${encodeURIComponent(String(id))}`,
+      {
+        method: "DELETE",
+        credentials: "include",
+      },
+    );
+    const json = await res.json();
+    if (!res.ok)
+      return {
+        data: null,
+        error: json?.error || new Error("Failed to delete article"),
+      };
+    return { data: json.data, error: json.error ?? null };
   } catch (e) {
     return { data: null, error: e };
   }
@@ -206,7 +254,9 @@ export async function uploadGaleriImage(file: File) {
     if (!res.ok)
       return {
         data: null,
-        error: new Error(json?.error?.message || json?.error || "upload failed"),
+        error: new Error(
+          json?.error?.message || json?.error || "upload failed",
+        ),
       };
     return {
       data: { publicUrl: json?.data?.publicUrl ?? json?.publicUrl ?? "" },
@@ -219,7 +269,9 @@ export async function uploadGaleriImage(file: File) {
 
 export async function insertMember(payload: {
   name: string;
-  role?: string;
+  role?: string; // legacy display title
+  role_group?: string; // 'board_of_director' | 'head_of_division' | 'staff'
+  staff_category?: string; // for staff: 'accounting_olympiad' | 'research_and_writing' | 'organization_and_project' | 'media_and_visual'
   photo?: string;
 }) {
   try {
@@ -227,6 +279,12 @@ export async function insertMember(payload: {
       {
         name: payload.name,
         role: payload.role || "",
+        ...(payload.role_group !== undefined
+          ? { role_group: payload.role_group }
+          : {}),
+        ...(payload.staff_category !== undefined
+          ? { staff_category: payload.staff_category }
+          : {}),
         photo: payload.photo || "",
       },
     ]);
@@ -286,7 +344,13 @@ export async function deleteMember(id: string) {
 
 export async function updateMember(
   id: string,
-  payload: { name?: string; role?: string; photo?: string },
+  payload: {
+    name?: string;
+    role?: string;
+    role_group?: string | null;
+    staff_category?: string | null;
+    photo?: string;
+  },
 ) {
   try {
     const { data, error } = await supabase
@@ -294,6 +358,12 @@ export async function updateMember(
       .update({
         ...(payload.name !== undefined ? { name: payload.name } : {}),
         ...(payload.role !== undefined ? { role: payload.role } : {}),
+        ...(payload.role_group !== undefined
+          ? { role_group: payload.role_group }
+          : {}),
+        ...(payload.staff_category !== undefined
+          ? { staff_category: payload.staff_category }
+          : {}),
         ...(payload.photo !== undefined ? { photo: payload.photo } : {}),
       })
       .match({ id });
@@ -398,6 +468,147 @@ export async function uploadMemberPhoto(file: File) {
       data: { publicUrl: json?.data?.publicUrl ?? json?.publicUrl ?? "" },
       error: null,
     };
+  } catch (e) {
+    return { data: null, error: e };
+  }
+}
+
+// === Article likes & comments helpers ===
+export async function fetchArticleLikeCount(articleId: string) {
+  try {
+    const { data, error, count } = await supabase
+      .from("article_likes")
+      .select("id", { count: "exact" })
+      .eq("article_id", articleId);
+    return { count: count ?? 0, data, error };
+  } catch (e) {
+    return { count: 0, data: null, error: e };
+  }
+}
+
+export async function fetchArticleCommentCount(articleId: string) {
+  try {
+    const { data, error, count } = await supabase
+      .from("article_comments")
+      .select("id", { count: "exact" })
+      .eq("article_id", articleId);
+    return { count: count ?? 0, data, error };
+  } catch (e) {
+    return { count: 0, data: null, error: e };
+  }
+}
+
+export async function fetchCommentsByArticle(articleId: string) {
+  try {
+    const { data, error } = await supabase
+      .from("article_comments")
+      .select("*")
+      .eq("article_id", articleId)
+      .order("created_at", { ascending: false });
+    return { data, error };
+  } catch (e) {
+    return { data: null, error: e };
+  }
+}
+
+export async function addArticleComment(payload: {
+  article_id: string;
+  user_name?: string;
+  user_email?: string;
+  content: string;
+}) {
+  try {
+    const { data, error } = await supabase.from("article_comments").insert([
+      {
+        article_id: payload.article_id,
+        user_name: payload.user_name || null,
+        user_email: payload.user_email || null,
+        content: payload.content,
+      },
+    ]);
+    return { data, error };
+  } catch (e) {
+    return { data: null, error: e };
+  }
+}
+
+export async function toggleArticleLike(payload: {
+  article_id: string;
+  user_name?: string;
+  user_email?: string;
+}) {
+  try {
+    // check existing
+    const { data: existing } = await supabase
+      .from("article_likes")
+      .select("*")
+      .match({
+        article_id: payload.article_id,
+        user_email: payload.user_email,
+      });
+
+    if (Array.isArray(existing) && existing.length > 0) {
+      // remove like
+      const { error } = await supabase
+        .from("article_likes")
+        .delete()
+        .match({ id: existing[0].id });
+      const { count } = await fetchArticleLikeCount(payload.article_id);
+      return { action: "removed", error, count };
+    }
+
+    const { data, error } = await supabase.from("article_likes").insert([
+      {
+        article_id: payload.article_id,
+        user_name: payload.user_name || null,
+        user_email: payload.user_email || null,
+      },
+    ]);
+
+    const { count } = await fetchArticleLikeCount(payload.article_id);
+    return { action: "added", data, error, count };
+  } catch (e) {
+    return { action: "error", error: e };
+  }
+}
+
+export async function fetchLikesByUser(user_email?: string) {
+  try {
+    if (!user_email) return { data: null, error: null };
+    const { data, error } = await supabase
+      .from("article_likes")
+      .select("*")
+      .eq("user_email", user_email)
+      .order("created_at", { ascending: false });
+    return { data, error };
+  } catch (e) {
+    return { data: null, error: e };
+  }
+}
+
+export async function fetchLikesByUserName(user_name?: string) {
+  try {
+    if (!user_name) return { data: null, error: null };
+    const { data, error } = await supabase
+      .from("article_likes")
+      .select("*")
+      .eq("user_name", user_name)
+      .order("created_at", { ascending: false });
+    return { data, error };
+  } catch (e) {
+    return { data: null, error: e };
+  }
+}
+
+export async function fetchCommentsByUserName(user_name?: string) {
+  try {
+    if (!user_name) return { data: null, error: null };
+    const { data, error } = await supabase
+      .from("article_comments")
+      .select("*")
+      .eq("user_name", user_name)
+      .order("created_at", { ascending: false });
+    return { data, error };
   } catch (e) {
     return { data: null, error: e };
   }

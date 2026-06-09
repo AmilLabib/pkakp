@@ -4,9 +4,11 @@ import { createClient } from "@supabase/supabase-js";
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { name, role, photo } = body as {
+    const { name, role, photo, role_group, staff_category } = body as {
       name: string;
       role?: string;
+      role_group?: string;
+      staff_category?: string;
       photo?: string;
     };
     if (!name)
@@ -57,7 +59,13 @@ export async function POST(req: Request) {
       // ignore if column doesn't exist
     }
 
-    const insertPayload: any = { name, role: role || "", photo: photo || "" };
+    const insertPayload: any = {
+      name,
+      role: role || "",
+      ...(role_group !== undefined ? { role_group } : {}),
+      ...(staff_category !== undefined ? { staff_category } : {}),
+      photo: photo || "",
+    };
     if (typeof positionToSet === "number")
       insertPayload.position = positionToSet;
 

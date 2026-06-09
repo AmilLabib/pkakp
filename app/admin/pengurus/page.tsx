@@ -10,7 +10,14 @@ import {
 } from "../../../lib/supabaseClient";
 import Toast from "../../components/Toast";
 
-type Pengurus = { id: string; name: string; role: string; image?: string };
+type Pengurus = {
+  id: string;
+  name: string;
+  role: string;
+  role_group?: string | null;
+  staff_category?: string | null;
+  image?: string;
+};
 
 export default function AdminPengurus() {
   const [pengurus, setPengurus] = useState<Pengurus[]>([
@@ -20,6 +27,8 @@ export default function AdminPengurus() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [name, setName] = useState("");
   const [role, setRole] = useState("");
+  const [roleGroup, setRoleGroup] = useState<string>("board_of_director");
+  const [staffCategory, setStaffCategory] = useState<string>("");
   const [image, setImage] = useState<string>("");
   const [newImageFile, setNewImageFile] = useState<File | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
@@ -39,6 +48,8 @@ export default function AdminPengurus() {
     setImage("");
     setUploadError(null);
     setNewImageFile(null);
+    setRoleGroup("board_of_director");
+    setStaffCategory("");
   };
 
   const add = () => {
@@ -47,6 +58,8 @@ export default function AdminPengurus() {
       id: Date.now().toString(),
       name,
       role: role || "Anggota",
+      role_group: roleGroup,
+      staff_category: staffCategory || null,
       image,
     };
     setPengurus((s) => [newItem, ...s]);
@@ -75,6 +88,8 @@ export default function AdminPengurus() {
           body: JSON.stringify({
             name: newItem.name,
             role: newItem.role,
+            role_group: newItem.role_group,
+            staff_category: newItem.staff_category,
             photo: photoUrl,
           }),
         });
@@ -98,6 +113,12 @@ export default function AdminPengurus() {
                   id: r.id ? String(r.id) : Date.now().toString(),
                   name: typeof r.name === "string" ? r.name : "",
                   role: typeof r.role === "string" ? r.role : "",
+                  role_group:
+                    typeof r.role_group === "string" ? r.role_group : null,
+                  staff_category:
+                    typeof r.staff_category === "string"
+                      ? r.staff_category
+                      : null,
                   image: typeof r.photo === "string" ? r.photo : "",
                 } as Pengurus;
               });
@@ -176,6 +197,8 @@ export default function AdminPengurus() {
     setEditingId(p.id);
     setName(p.name || "");
     setRole(p.role || "");
+    setRoleGroup(p.role_group || "board_of_director");
+    setStaffCategory(p.staff_category || "");
     setImage(p.image || "");
     setIsModalOpen(true);
   };
@@ -198,7 +221,14 @@ export default function AdminPengurus() {
       const res = await fetch("/api/members/update", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: editingId, name, role, photo: photoUrl }),
+        body: JSON.stringify({
+          id: editingId,
+          name,
+          role,
+          role_group: roleGroup,
+          staff_category: staffCategory,
+          photo: photoUrl,
+        }),
       });
       const json = await res.json();
       if (!res.ok)
@@ -207,7 +237,16 @@ export default function AdminPengurus() {
       // optimistic update local state
       setPengurus((s) =>
         s.map((x) =>
-          x.id === editingId ? { ...x, name, role, image: photoUrl } : x,
+          x.id === editingId
+            ? {
+                ...x,
+                name,
+                role,
+                role_group: roleGroup,
+                staff_category: staffCategory,
+                image: photoUrl,
+              }
+            : x,
         ),
       );
     } catch (e) {
@@ -251,6 +290,10 @@ export default function AdminPengurus() {
               id: r.id ? String(r.id) : Date.now().toString(),
               name: typeof r.name === "string" ? r.name : "",
               role: typeof r.role === "string" ? r.role : "",
+              role_group:
+                typeof r.role_group === "string" ? r.role_group : null,
+              staff_category:
+                typeof r.staff_category === "string" ? r.staff_category : null,
               image: typeof r.photo === "string" ? r.photo : "",
             };
           });
@@ -399,6 +442,40 @@ export default function AdminPengurus() {
                 placeholder="Jabatan"
                 className="w-full border px-3 py-2 rounded"
               />
+              <div className="mt-2">
+                <label className="block text-sm mb-1">Role Group</label>
+                <select
+                  value={roleGroup}
+                  onChange={(e) => setRoleGroup(e.target.value)}
+                  className="w-full border px-3 py-2 rounded"
+                >
+                  <option value="board_of_director">Board of Directors</option>
+                  <option value="head_of_division">Head of Division</option>
+                  <option value="staff">Staff</option>
+                </select>
+              </div>
+              {roleGroup === "staff" && (
+                <div className="mt-2">
+                  <label className="block text-sm mb-1">Staff Category</label>
+                  <select
+                    value={staffCategory}
+                    onChange={(e) => setStaffCategory(e.target.value)}
+                    className="w-full border px-3 py-2 rounded"
+                  >
+                    <option value="">Pilih kategori</option>
+                    <option value="accounting_olympiad">
+                      Accounting Olympiad
+                    </option>
+                    <option value="research_and_writing">
+                      Research & Writing
+                    </option>
+                    <option value="organization_and_project">
+                      Organization & Project
+                    </option>
+                    <option value="media_and_visual">Media & Visual</option>
+                  </select>
+                </div>
+              )}
               <input
                 type="file"
                 accept="image/*"
