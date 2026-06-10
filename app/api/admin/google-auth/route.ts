@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 
-export async function GET(_req: NextRequest) {
+export async function GET(req: NextRequest) {
   const clientId = process.env.GOOGLE_CLIENT_ID;
-  const redirectUri = process.env.GOOGLE_REDIRECT_URI;
+  const redirectUri =
+    process.env.GOOGLE_REDIRECT_URI ??
+    new URL("/api/admin/google-callback", req.url).toString();
 
-  if (!clientId || !redirectUri) {
+  if (!clientId) {
     return NextResponse.json(
       { error: "Server not configured" },
       { status: 500 },

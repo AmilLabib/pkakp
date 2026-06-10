@@ -30,12 +30,9 @@ export async function GET(req: NextRequest) {
         new URL("/login?error=missing_code", req.url),
       );
 
-    const redirectUri = process.env.GOOGLE_REDIRECT_URI;
-    if (!redirectUri)
-      return NextResponse.json(
-        { error: "Server not configured" },
-        { status: 500 },
-      );
+    const redirectUri =
+      process.env.GOOGLE_REDIRECT_URI ??
+      new URL("/api/auth/callback/google", req.url).toString();
 
     let tokenRes: any;
     try {
