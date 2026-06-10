@@ -18,10 +18,7 @@ function verifyToken(req: NextRequest) {
   }
 }
 
-export async function GET(
-  req: NextRequest,
-  { params }: { params: { id: string } },
-) {
+export async function GET(req: NextRequest, { params }: any) {
   const payload = verifyToken(req);
   if (!payload)
     return NextResponse.json(
@@ -61,10 +58,7 @@ export async function GET(
   }
 }
 
-export async function PATCH(
-  req: NextRequest,
-  { params }: { params: { id: string } },
-) {
+export async function PATCH(req: NextRequest, { params }: any) {
   const payload = verifyToken(req);
   if (!payload)
     return NextResponse.json(
@@ -117,10 +111,7 @@ export async function PATCH(
   }
 }
 
-export async function DELETE(
-  req: NextRequest,
-  { params }: { params: { id: string } },
-) {
+export async function DELETE(req: NextRequest, { params }: any) {
   const payload = verifyToken(req);
   if (!payload)
     return NextResponse.json(
