@@ -7,8 +7,8 @@ import FooterSection from "../../components/FooterSection";
 import {
   fetchMembers,
   fetchArticles,
-  fetchLikesByUserName,
-  fetchCommentsByUserName,
+  fetchArticleLikeCount,
+  fetchArticleCommentCount,
 } from "../../../lib/supabaseClient";
 
 export default function MemberProfilePage() {
@@ -38,21 +38,30 @@ export default function MemberProfilePage() {
     (async () => {
       if (!member) return;
       try {
-        const { data: articles } = await fetchArticles();
-        const authored = Array.isArray(articles)
-          ? articles.filter(
-              (a: any) => String(a.author || "") === String(member.name),
-            )
-          : [];
+        // fetch only articles authored by this member (uses supabase `author` column)
+        const { data: articles } = await fetchArticles({
+          onlyOwnedBy: member.name,
+        });
+        const authored = Array.isArray(articles) ? articles : [];
         setArticlesCount(authored.length);
 
-        const likes = await fetchLikesByUserName(member.name);
-        setLikesCount(Array.isArray(likes.data) ? likes.data.length : 0);
+        // Sum likes and comments across authored articles
+        let totalLikes = 0;
+        let totalComments = 0;
 
-        const comments = await fetchCommentsByUserName(member.name);
-        setCommentsCount(
-          Array.isArray(comments.data) ? comments.data.length : 0,
+        await Promise.all(
+          authored.map(async (a: any) => {
+            const id = String(a.id ?? "");
+            if (!id) return;
+            const likeRes = await fetchArticleLikeCount(id);
+            const commentRes = await fetchArticleCommentCount(id);
+            totalLikes += Number(likeRes?.count ?? 0);
+            totalComments += Number(commentRes?.count ?? 0);
+          }),
         );
+
+        setLikesCount(totalLikes);
+        setCommentsCount(totalComments);
       } catch (e) {
         // ignore
       }

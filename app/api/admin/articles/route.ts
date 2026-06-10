@@ -35,32 +35,34 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ ok: true, data, error });
     }
 
-    const name = (payload.name || "").toString().trim();
-    const email = (payload.email || "").toString().trim();
+    // For staff: filter articles by their name or email
+    const staffName = (payload.name || "").toString().trim();
+    const staffEmail = (payload.email || "").toString().trim();
 
-    // Build OR filter: exact matches or case-insensitive contains
-    const clauses: string[] = [];
-    const safe = (v: string) => v.replace(/,/g, "");
-    if (name) {
-      clauses.push(`author.eq.${safe(name)}`);
-      clauses.push(`author.ilike.%${safe(name)}%`);
-    }
-    if (email) {
-      clauses.push(`author.eq.${safe(email)}`);
-      clauses.push(`author.ilike.%${safe(email)}%`);
-    }
-
-    if (clauses.length === 0) {
-      return NextResponse.json({ ok: true, data: [], error: null });
-    }
-
-    const filter = clauses.join(",");
-    const { data, error } = await supabaseAdmin
+    // Get all articles and filter client-side since Supabase filter can be tricky
+    const { data: allData, error: allError } = await supabaseAdmin
       .from("articles")
       .select("*")
-      .or(filter)
       .order("created_at", { ascending: false });
-    return NextResponse.json({ ok: true, data, error });
+
+    if (allError) {
+      return NextResponse.json({ ok: false, data: null, error: allError });
+    }
+
+    // Filter to only articles authored by this staff
+    const filtered = Array.isArray(allData)
+      ? allData.filter((art: any) => {
+          const author = String(art.author || "").trim();
+          return (
+            author === staffName ||
+            author === staffEmail ||
+            author.toLowerCase() === staffName.toLowerCase() ||
+            author.toLowerCase() === staffEmail.toLowerCase()
+          );
+        })
+      : [];
+
+    return NextResponse.json({ ok: true, data: filtered, error: null });
   } catch (err: any) {
     return NextResponse.json(
       { ok: false, error: String(err) },

@@ -9,8 +9,8 @@ import {
   fetchMembers,
   fetchPrestasi,
   fetchGaleri,
-  fetchLikesByUser,
-  fetchCommentsByUserName,
+  fetchArticleLikeCount,
+  fetchArticleCommentCount,
 } from "@/lib/supabaseClient";
 import AdminArtikel from "./artikel/page";
 
@@ -116,32 +116,87 @@ export default function AdminIndex() {
     (async () => {
       try {
         const onlyOwnedBy = user.email ?? user.name ?? null;
+        console.log("[Admin Stats] Staff identifier:", onlyOwnedBy);
 
+        let artsData: any[] = [];
         try {
           const { data: arts } = await fetchArticles({ onlyOwnedBy });
           if (!mounted) return;
-          setStaffArticlesCount(Array.isArray(arts) ? arts.length : 0);
-        } catch {
+          artsData = Array.isArray(arts) ? arts : [];
+          console.log(
+            "[Admin Stats] Articles fetched:",
+            artsData.length,
+            artsData,
+          );
+          setStaffArticlesCount(artsData.length);
+        } catch (e) {
+          console.error("[Admin Stats] Error fetching articles:", e);
           if (mounted) setStaffArticlesCount(0);
         }
 
         try {
-          const { data: likes } = await fetchLikesByUser(user.email);
-          if (!mounted) return;
-          setStaffLikedCount(Array.isArray(likes) ? likes.length : 0);
-        } catch {
-          if (mounted) setStaffLikedCount(0);
-        }
+          // Sum likes/comments received on articles authored by this staff
+          let totalLikes = 0;
+          let totalComments = 0;
 
-        try {
-          const { data: comments } = await fetchCommentsByUserName(user.name);
+          if (artsData.length > 0) {
+            const countResults = await Promise.all(
+              artsData.map(async (art: any) => {
+                const id = String(art.id ?? "");
+                if (!id) return { likes: 0, comments: 0 };
+                try {
+                  const [l, c] = await Promise.all([
+                    fetchArticleLikeCount(id),
+                    fetchArticleCommentCount(id),
+                  ]);
+                  const likes = Number(l?.count ?? 0);
+                  const comments = Number(c?.count ?? 0);
+                  console.log(
+                    `[Admin Stats] Article ${id}: ${likes} likes, ${comments} comments`,
+                  );
+                  return { likes, comments };
+                } catch (e) {
+                  console.error(
+                    `[Admin Stats] Error counting for article ${id}:`,
+                    e,
+                  );
+                  return { likes: 0, comments: 0 };
+                }
+              }),
+            );
+
+            // Sum all the results
+            totalLikes = countResults.reduce((sum, r) => sum + r.likes, 0);
+            totalComments = countResults.reduce(
+              (sum, r) => sum + r.comments,
+              0,
+            );
+            console.log(
+              "[Admin Stats] Total likes:",
+              totalLikes,
+              "Total comments:",
+              totalComments,
+            );
+          } else {
+            console.log("[Admin Stats] No articles found for staff");
+          }
+
           if (!mounted) return;
-          setStaffCommentsCount(Array.isArray(comments) ? comments.length : 0);
-        } catch {
-          if (mounted) setStaffCommentsCount(0);
+          setStaffLikedCount(totalLikes);
+          setStaffCommentsCount(totalComments);
+        } catch (e) {
+          console.error("[Admin Stats] Error calculating likes/comments:", e);
+          if (mounted) {
+            setStaffLikedCount(0);
+            setStaffCommentsCount(0);
+          }
         }
-      } catch {
-        // ignore
+      } catch (e) {
+        console.error("[Admin Stats] Unexpected error:", e);
+        if (mounted) {
+          setStaffLikedCount(0);
+          setStaffCommentsCount(0);
+        }
       }
     })();
 

@@ -37,6 +37,8 @@ export default function ArticleDetailPage() {
   const [comments, setComments] = useState<any[]>([]);
   const [commentText, setCommentText] = useState("");
   const [posting, setPosting] = useState(false);
+  const [liked, setLiked] = useState(false);
+  const [animateLike, setAnimateLike] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -134,7 +136,16 @@ export default function ArticleDetailPage() {
         user_name: name,
         user_email: email,
       });
-      if (out && out.count !== undefined) setLikesCount(out.count);
+      if (out && out.count !== undefined) {
+        setLikesCount(out.count);
+        if (out.action === "added") {
+          setLiked(true);
+          setAnimateLike(true);
+          setTimeout(() => setAnimateLike(false), 400);
+        } else if (out.action === "removed") {
+          setLiked(false);
+        }
+      }
     } catch (e) {
       // ignore
     }
@@ -190,22 +201,28 @@ export default function ArticleDetailPage() {
           <div className="flex items-center gap-3 mb-6">
             <button
               onClick={handleLike}
-              className="px-3 py-2 rounded-md bg-white border flex items-center gap-2"
+              aria-pressed={liked}
+              className={`px-3 py-2 rounded-md bg-white border flex items-center gap-2 ${liked ? "ring-1 ring-red-100" : ""}`}
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 width="18"
                 height="18"
                 viewBox="0 0 24 24"
-                fill="none"
-                stroke="#000"
+                className={`transition-transform duration-200 ${animateLike ? "scale-125" : ""}`}
+                fill={liked ? "#ef4444" : "none"}
+                stroke={liked ? "#ef4444" : "#000"}
                 strokeWidth="2"
                 strokeLinecap="round"
                 strokeLinejoin="round"
               >
                 <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 0 0 0-7.78z"></path>
               </svg>
-              <span>{likesCount}</span>
+              <span
+                className={`${animateLike ? "scale-110 text-red-500" : ""} transition-all`}
+              >
+                {likesCount}
+              </span>
             </button>
 
             <div className="px-3 py-2 rounded-md bg-white border flex items-center gap-2">

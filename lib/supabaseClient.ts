@@ -36,14 +36,31 @@ export async function insertArticle(payload: {
 
 export async function fetchArticles(options?: { onlyOwnedBy?: string | null }) {
   try {
+    // If filtering by owner, use the API endpoint instead (handles staff auth)
+    if (options?.onlyOwnedBy) {
+      try {
+        const res = await fetch("/api/admin/articles", {
+          method: "GET",
+          credentials: "include",
+        });
+        const json = await res.json();
+        if (!res.ok)
+          return {
+            data: null,
+            error: json?.error || new Error("Failed to fetch articles"),
+          };
+        // API returns { ok: true, data: [...], error: null }
+        const data = json?.data ?? [];
+        return { data, error: json?.error ?? null };
+      } catch (e) {
+        return { data: null, error: e };
+      }
+    }
+
     let query = supabase
       .from("articles")
       .select("*")
       .order("created_at", { ascending: false });
-
-    if (options && options.onlyOwnedBy) {
-      query = query.eq("author", options.onlyOwnedBy);
-    }
 
     const { data, error } = await query;
     return { data, error };

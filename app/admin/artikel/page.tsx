@@ -6,6 +6,8 @@ import {
   fetchAdminArticles,
   deleteArticle,
   fetchArticles,
+  fetchArticleLikeCount,
+  fetchArticleCommentCount,
 } from "../../../lib/supabaseClient";
 import Toast from "../../components/Toast";
 
@@ -16,6 +18,8 @@ type Article = {
   author: string;
   date: string;
   image: string;
+  likes?: number;
+  comments?: number;
 };
 
 type ArticleRow = {
@@ -42,29 +46,8 @@ export default function AdminArtikel() {
     role?: string;
   } | null>(null);
 
+  // First effect: Fetch current user
   useEffect(() => {
-    (async () => {
-      try {
-        const { data, error } = await fetchAdminArticles();
-        if (!error && data && data.length > 0) {
-          const mapped = (data as ArticleRow[]).map((d) => ({
-            id: String(d.id ?? ""),
-            title: d.title || "",
-            desc: d.desc || "",
-            author: (d as any).author || "",
-            date: d.created_at
-              ? new Date(d.created_at).toLocaleDateString()
-              : "",
-            image: d.image || "",
-          }));
-          setArticles(mapped);
-        }
-      } catch (err) {
-        console.error("Gagal memuat artikel awal:", err);
-      }
-    })();
-
-    // fetch current admin identity for ownership checks
     (async () => {
       try {
         const res = await fetch("/api/admin/me");
@@ -81,6 +64,67 @@ export default function AdminArtikel() {
       }
     })();
   }, []);
+
+  // Second effect: Fetch articles (depends on currentUser)
+  useEffect(() => {
+    (async () => {
+      try {
+        const { data, error } = await fetchAdminArticles();
+        if (!error && data && data.length > 0) {
+          let articles_list = data as ArticleRow[];
+
+          // If current user is staff (not admin), filter to only their articles
+          if (currentUser?.role === "staf") {
+            const staffId = currentUser.name || currentUser.email || "";
+            articles_list = articles_list.filter((d: any) => {
+              const author = String(d.author || "").trim();
+              return (
+                author === staffId ||
+                author.toLowerCase() === staffId.toLowerCase()
+              );
+            });
+          }
+
+          const mapped = articles_list.map((d) => ({
+            id: String(d.id ?? ""),
+            title: d.title || "",
+            desc: d.desc || "",
+            author: (d as any).author || "",
+            date: d.created_at
+              ? new Date(d.created_at).toLocaleDateString()
+              : "",
+            image: d.image || "",
+            likes: 0,
+            comments: 0,
+          }));
+
+          // Fetch likes/comments counts for each article in parallel
+          const withCounts = await Promise.all(
+            mapped.map(async (m) => {
+              if (!m.id) return m;
+              try {
+                const [l, c] = await Promise.all([
+                  fetchArticleLikeCount(String(m.id)),
+                  fetchArticleCommentCount(String(m.id)),
+                ]);
+                return {
+                  ...m,
+                  likes: Number(l?.count ?? 0),
+                  comments: Number(c?.count ?? 0),
+                } as Article;
+              } catch (e) {
+                return m;
+              }
+            }),
+          );
+
+          setArticles(withCounts as Article[]);
+        }
+      } catch (err) {
+        console.error("Gagal memuat artikel awal:", err);
+      }
+    })();
+  }, [currentUser?.role]);
 
   const openEditor = (idx?: number) => {
     if (idx !== undefined) {
@@ -100,25 +144,37 @@ export default function AdminArtikel() {
   const viewArticle = async (idx: number) => {
     const target = articles[idx];
     if (!target || !target.id) {
-      setToast({ message: "Artikel tidak tersedia untuk dilihat", type: "error" });
+      setToast({
+        message: "Artikel tidak tersedia untuk dilihat",
+        type: "error",
+      });
       return;
     }
     try {
       const { data, error } = await fetchArticles();
       if (error || !Array.isArray(data)) {
-        setToast({ message: "Gagal memuat daftar publik artikel", type: "error" });
+        setToast({
+          message: "Gagal memuat daftar publik artikel",
+          type: "error",
+        });
         return;
       }
       const foundIndex = (data as any[]).findIndex(
         (d) => String(d.id) === String(target.id),
       );
       if (foundIndex === -1) {
-        setToast({ message: "Artikel tidak ditemukan pada halaman publik", type: "error" });
+        setToast({
+          message: "Artikel tidak ditemukan pada halaman publik",
+          type: "error",
+        });
         return;
       }
       router.push(`/artikel/${foundIndex}`);
     } catch (e) {
-      setToast({ message: "Terjadi kesalahan saat membuka artikel", type: "error" });
+      setToast({
+        message: "Terjadi kesalahan saat membuka artikel",
+        type: "error",
+      });
     }
   };
 
@@ -185,6 +241,8 @@ export default function AdminArtikel() {
             <tr>
               <th className="p-3 font-semibold text-gray-700">Judul</th>
               <th className="p-3 font-semibold text-gray-700">Tanggal</th>
+              <th className="p-3 font-semibold text-gray-700">Likes</th>
+              <th className="p-3 font-semibold text-gray-700">Comments</th>
               <th className="p-3 font-semibold text-gray-700">Aksi</th>
             </tr>
           </thead>
@@ -193,6 +251,12 @@ export default function AdminArtikel() {
               <tr key={`${a.id}-${i}`} className="border-b hover:bg-gray-50">
                 <td className="p-3">{a.title}</td>
                 <td className="p-3 text-sm text-gray-600">{a.date}</td>
+                <td className="p-3 text-sm text-gray-700 text-center">
+                  {a.likes ?? 0}
+                </td>
+                <td className="p-3 text-sm text-gray-700 text-center">
+                  {a.comments ?? 0}
+                </td>
                 <td className="p-3">
                   <button
                     onClick={() => viewArticle(i)}
@@ -253,7 +317,7 @@ export default function AdminArtikel() {
 
             {articles.length === 0 && (
               <tr>
-                <td colSpan={3} className="p-4 text-center text-gray-500">
+                <td colSpan={5} className="p-4 text-center text-gray-500">
                   Belum ada artikel.
                 </td>
               </tr>
