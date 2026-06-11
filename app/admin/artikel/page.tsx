@@ -241,6 +241,9 @@ export default function AdminArtikel() {
             <tr>
               <th className="p-3 font-semibold text-gray-700">Judul</th>
               <th className="p-3 font-semibold text-gray-700">Tanggal</th>
+              {currentUser?.role === "admin" && (
+                <th className="p-3 font-semibold text-gray-700">Author</th>
+              )}
               <th className="p-3 font-semibold text-gray-700">Likes</th>
               <th className="p-3 font-semibold text-gray-700">Comments</th>
               <th className="p-3 font-semibold text-gray-700">Aksi</th>
@@ -251,6 +254,9 @@ export default function AdminArtikel() {
               <tr key={`${a.id}-${i}`} className="border-b hover:bg-gray-50">
                 <td className="p-3">{a.title}</td>
                 <td className="p-3 text-sm text-gray-600">{a.date}</td>
+                {currentUser?.role === "admin" && (
+                  <td className="p-3 text-sm text-gray-700">{a.author}</td>
+                )}
                 <td className="p-3 text-sm text-gray-700 text-center">
                   {a.likes ?? 0}
                 </td>
@@ -317,7 +323,10 @@ export default function AdminArtikel() {
 
             {articles.length === 0 && (
               <tr>
-                <td colSpan={5} className="p-4 text-center text-gray-500">
+                <td
+                  colSpan={currentUser?.role === "admin" ? 6 : 5}
+                  className="p-4 text-center text-gray-500"
+                >
                   Belum ada artikel.
                 </td>
               </tr>
