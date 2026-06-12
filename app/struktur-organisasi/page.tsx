@@ -25,7 +25,7 @@ const fallback: Member[] = [
   { role: "Treasurer 2", name: "nama" },
   { role: "Head Accounting Olympiad", name: "nama" },
   { role: "Head Research & Writing", name: "nama" },
-  { role: "Head Media & Visual", name: "nama" },
+  { role: "Head Media & Visual Communication", name: "nama" },
   { role: "Head Organization & Project", name: "nama" },
 ];
 
@@ -144,16 +144,38 @@ export default function StrukturOrganisasiPage() {
                           ease: "easeOut",
                         }}
                       >
-                        <div className="mx-auto w-3/4 max-w-130 h-48 md:h-54 rounded-[18px] bg-[#f7d761] relative overflow-visible">
-                          <MemberImage src={item.photo} alt={item.role} />
-                        </div>
+                        <div>
+                          {item.id ? (
+                            <Link
+                              href={`/struktur-organisasi/${item.id}`}
+                              className="block"
+                            >
+                              <div className="mx-auto w-3/4 max-w-130 h-48 md:h-54 rounded-[18px] bg-[#f7d761] relative overflow-visible">
+                                <MemberImage src={item.photo} alt={item.role} />
+                              </div>
 
-                        <h3 className="mt-2 font-poppins font-semibold italic text-3xl leading-[0.95] text-[#ff971d]">
-                          {item.role}
-                        </h3>
-                        <p className="mt-1 font-poppins text-2xl leading-[0.95] text-black">
-                          {item.name}
-                        </p>
+                              <h3 className="mt-2 font-poppins font-semibold italic text-3xl leading-[0.95] text-[#ff971d]">
+                                {item.role}
+                              </h3>
+                              <p className="mt-1 font-poppins text-2xl leading-[0.95] text-black">
+                                {item.name}
+                              </p>
+                            </Link>
+                          ) : (
+                            <>
+                              <div className="mx-auto w-3/4 max-w-130 h-48 md:h-54 rounded-[18px] bg-[#f7d761] relative overflow-visible">
+                                <MemberImage src={item.photo} alt={item.role} />
+                              </div>
+
+                              <h3 className="mt-2 font-poppins font-semibold italic text-3xl leading-[0.95] text-[#ff971d]">
+                                {item.role}
+                              </h3>
+                              <p className="mt-1 font-poppins text-2xl leading-[0.95] text-black">
+                                {item.name}
+                              </p>
+                            </>
+                          )}
+                        </div>
                       </motion.article>
                     ))}
                 </div>
@@ -181,16 +203,38 @@ export default function StrukturOrganisasiPage() {
                           ease: "easeOut",
                         }}
                       >
-                        <div className="mx-auto w-3/4 max-w-130 h-48 md:h-54 rounded-[18px] bg-[#f7d761] relative overflow-visible">
-                          <MemberImage src={item.photo} alt={item.role} />
-                        </div>
+                        <div>
+                          {item.id ? (
+                            <Link
+                              href={`/struktur-organisasi/${item.id}`}
+                              className="block"
+                            >
+                              <div className="mx-auto w-3/4 max-w-130 h-48 md:h-54 rounded-[18px] bg-[#f7d761] relative overflow-visible">
+                                <MemberImage src={item.photo} alt={item.role} />
+                              </div>
 
-                        <h3 className="mt-2 font-poppins font-semibold italic text-3xl leading-[0.95] text-[#ff971d]">
-                          {item.role}
-                        </h3>
-                        <p className="mt-1 font-poppins text-2xl leading-[0.95] text-black">
-                          {item.name}
-                        </p>
+                              <h3 className="mt-2 font-poppins font-semibold italic text-3xl leading-[0.95] text-[#ff971d]">
+                                {item.role}
+                              </h3>
+                              <p className="mt-1 font-poppins text-2xl leading-[0.95] text-black">
+                                {item.name}
+                              </p>
+                            </Link>
+                          ) : (
+                            <>
+                              <div className="mx-auto w-3/4 max-w-130 h-48 md:h-54 rounded-[18px] bg-[#f7d761] relative overflow-visible">
+                                <MemberImage src={item.photo} alt={item.role} />
+                              </div>
+
+                              <h3 className="mt-2 font-poppins font-semibold italic text-3xl leading-[0.95] text-[#ff971d]">
+                                {item.role}
+                              </h3>
+                              <p className="mt-1 font-poppins text-2xl leading-[0.95] text-black">
+                                {item.name}
+                              </p>
+                            </>
+                          )}
+                        </div>
                       </motion.article>
                     ))}
                 </div>
@@ -217,7 +261,7 @@ export default function StrukturOrganisasiPage() {
                       key: "organization_and_project",
                       label: "Organization & Project",
                     },
-                    { key: "media_and_visual", label: "Media & Visual" },
+                    { key: "media_and_visual", label: "Media & Visual communication" },
                   ].map((f) => (
                     <MotionButton
                       key={f.key}
@@ -326,7 +370,7 @@ function formatCategory(cat?: string | null) {
     accounting_olympiad: "Accounting Olympiad",
     research_and_writing: "Research & Writing",
     organization_and_project: "Organization & Project",
-    media_and_visual: "Media & Visual",
+    media_and_visual: "Media & Visual Communication",
   };
   return (
     map[cat] ||
