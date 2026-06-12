@@ -490,6 +490,20 @@ export async function uploadMemberPhoto(file: File) {
   }
 }
 
+// Fetch articles by author name (public, no auth required)
+export async function fetchArticlesByAuthor(authorName: string) {
+  try {
+    const { data, error } = await supabase
+      .from("articles")
+      .select("*")
+      .ilike("author", authorName)
+      .order("created_at", { ascending: false });
+    return { data, error };
+  } catch (e) {
+    return { data: null, error: e };
+  }
+}
+
 // === Article likes & comments helpers ===
 export async function fetchArticleLikeCount(articleId: string) {
   try {

@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { motion } from "framer-motion";
+import MotionButton from "../components/MotionButton";
 import FooterSection from "../components/FooterSection";
 import { useEffect, useState } from "react";
 
@@ -218,7 +219,7 @@ export default function StrukturOrganisasiPage() {
                     },
                     { key: "media_and_visual", label: "Media & Visual" },
                   ].map((f) => (
-                    <button
+                    <MotionButton
                       key={f.key}
                       onClick={() => setStaffFilter(f.key)}
                       type="button"
@@ -227,7 +228,7 @@ export default function StrukturOrganisasiPage() {
                       }`}
                     >
                       {f.label}
-                    </button>
+                    </MotionButton>
                   ))}
                 </div>
 

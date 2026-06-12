@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
+import MotionButton from "../components/MotionButton";
 
 export default function AdminClientLayout({
   children,
@@ -95,7 +96,7 @@ export default function AdminClientLayout({
       <div className="max-w-7xl mx-auto px-4 md:px-8">
         <div className="md:hidden mb-4 flex items-center justify-between">
           {!hideSidebar && (
-            <button
+            <MotionButton
               aria-label="Toggle menu"
               onClick={() => setMenuOpen((v) => !v)}
               className="p-2 rounded bg-white shadow"
@@ -131,7 +132,7 @@ export default function AdminClientLayout({
                   />
                 </svg>
               )}
-            </button>
+            </MotionButton>
           )}
 
           <h2 className="font-bold text-lg">Admin</h2>
@@ -140,7 +141,7 @@ export default function AdminClientLayout({
         {/* Desktop user menu (top-right) */}
         <div className="hidden md:flex items-center justify-end mb-4">
           <div className="relative">
-            <button
+            <MotionButton
               onClick={() => setProfileOpen((v) => !v)}
               aria-label="User menu"
               className="flex items-center gap-2 bg-white px-3 py-1 rounded shadow"
@@ -173,7 +174,7 @@ export default function AdminClientLayout({
                   d="M19 9l-7 7-7-7"
                 />
               </svg>
-            </button>
+            </MotionButton>
 
             {profileOpen && (
               <div className="absolute right-0 mt-2 w-48 bg-white border rounded shadow-lg z-50">
@@ -187,7 +188,7 @@ export default function AdminClientLayout({
                 >
                   Lihat Profil
                 </a>
-                <button
+                <MotionButton
                   onClick={() => {
                     setProfileOpen(false);
                     handleLogout();
@@ -195,7 +196,7 @@ export default function AdminClientLayout({
                   className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-50"
                 >
                   Logout
-                </button>
+                </MotionButton>
               </div>
             )}
           </div>
@@ -251,12 +252,12 @@ export default function AdminClientLayout({
                     </Link>
                   </>
                 )}
-                <button
+                <MotionButton
                   onClick={handleLogout}
                   className="mt-4 text-sm bg-red-50 text-red-700 px-3 py-2 rounded"
                 >
                   Logout
-                </button>
+                </MotionButton>
               </nav>
             </aside>
           )}
@@ -333,7 +334,7 @@ export default function AdminClientLayout({
                   </Link>
                 </>
               )}
-              <button
+              <MotionButton
                 onClick={() => {
                   setMenuOpen(false);
                   handleLogout();
@@ -341,7 +342,7 @@ export default function AdminClientLayout({
                 className="mt-4 text-sm bg-red-50 text-red-700 px-3 py-2 rounded cursor-pointer"
               >
                 Logout
-              </button>
+              </MotionButton>
             </nav>
           </aside>
         </div>

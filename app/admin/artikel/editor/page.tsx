@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import { insertArticle, updateArticle } from "../../../../lib/supabaseClient";
 import Toast from "../../../components/Toast";
+import MotionButton from "../../../components/MotionButton";
 
 const CustomEditor = dynamic(
   () => import("../../../components/admin/artikel/CustomEditor"),
@@ -147,18 +148,18 @@ export default function AdminArtikelEditorPage() {
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-extrabold">Editor Artikel</h1>
         <div className="flex gap-2">
-          <button
+          <MotionButton
             onClick={openPreview}
             className="bg-white border border-gray-300 text-gray-800 px-4 py-2 rounded hover:bg-gray-50 transition"
           >
             Preview Artikel
-          </button>
-          <button
+          </MotionButton>
+          <MotionButton
             onClick={saveAndPublish}
             className="bg-black text-white px-4 py-2 rounded hover:bg-gray-800 transition"
           >
             Simpan & Publish
-          </button>
+          </MotionButton>
         </div>
       </div>
 
@@ -190,7 +191,7 @@ export default function AdminArtikelEditorPage() {
               Artikel berhasil dipublikasikan.
             </p>
             <div className="flex justify-end">
-              <button
+              <MotionButton
                 onClick={() => {
                   setShowPublishedModal(false);
                   router.push("/admin/artikel");
@@ -198,7 +199,7 @@ export default function AdminArtikelEditorPage() {
                 className="bg-black text-white px-4 py-2 rounded"
               >
                 Tutup
-              </button>
+              </MotionButton>
             </div>
           </div>
         </div>

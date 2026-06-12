@@ -3,21 +3,36 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Image from "next/image";
+import Link from "next/link";
 import FooterSection from "../../components/FooterSection";
+import ArticleCard from "../../components/ArticleCard";
 import {
   fetchMembers,
-  fetchArticles,
+  fetchArticlesByAuthor,
   fetchArticleLikeCount,
   fetchArticleCommentCount,
 } from "../../../lib/supabaseClient";
+import { excerptFromHtml, extractFirstImageSrc } from "../../../lib/excerpt";
+
+type ArticleDisplay = {
+  id?: string;
+  title: string;
+  desc: string;
+  date: string;
+  image: string;
+  author?: string;
+};
 
 export default function MemberProfilePage() {
   const params = useParams();
   const id = params?.id as string | undefined;
   const [member, setMember] = useState<any | null>(null);
+  const [articles, setArticles] = useState<ArticleDisplay[]>([]);
   const [articlesCount, setArticlesCount] = useState<number>(0);
   const [likesCount, setLikesCount] = useState<number>(0);
   const [commentsCount, setCommentsCount] = useState<number>(0);
+  const [loading, setLoading] = useState(true);
+  const [allArticlesRaw, setAllArticlesRaw] = useState<any[]>([]);
 
   useEffect(() => {
     (async () => {
@@ -37,13 +52,34 @@ export default function MemberProfilePage() {
   useEffect(() => {
     (async () => {
       if (!member) return;
+      setLoading(true);
       try {
-        // fetch only articles authored by this member (uses supabase `author` column)
-        const { data: articles } = await fetchArticles({
-          onlyOwnedBy: member.name,
-        });
-        const authored = Array.isArray(articles) ? articles : [];
+        // Fetch articles by author name directly from Supabase (public, no auth)
+        const { data: rawArticles } = await fetchArticlesByAuthor(member.name);
+        const authored = Array.isArray(rawArticles) ? rawArticles : [];
+        setAllArticlesRaw(authored);
         setArticlesCount(authored.length);
+
+        // Map to display format
+        const mapped: ArticleDisplay[] = authored.map((d: any) => {
+          const descHtml = d.desc || "";
+          const imageFromField = d.image && d.image !== "" ? d.image : null;
+          const imageFromContent = !imageFromField
+            ? extractFirstImageSrc(descHtml)
+            : null;
+
+          return {
+            id: d.id,
+            title: d.title || "",
+            desc: excerptFromHtml(descHtml, 2),
+            date: d.created_at
+              ? new Date(d.created_at).toLocaleDateString()
+              : "",
+            image: imageFromField || imageFromContent || "",
+            author: d.author || "",
+          };
+        });
+        setArticles(mapped);
 
         // Sum likes and comments across authored articles
         let totalLikes = 0;
@@ -51,10 +87,10 @@ export default function MemberProfilePage() {
 
         await Promise.all(
           authored.map(async (a: any) => {
-            const id = String(a.id ?? "");
-            if (!id) return;
-            const likeRes = await fetchArticleLikeCount(id);
-            const commentRes = await fetchArticleCommentCount(id);
+            const articleId = String(a.id ?? "");
+            if (!articleId) return;
+            const likeRes = await fetchArticleLikeCount(articleId);
+            const commentRes = await fetchArticleCommentCount(articleId);
             totalLikes += Number(likeRes?.count ?? 0);
             totalComments += Number(commentRes?.count ?? 0);
           }),
@@ -64,6 +100,8 @@ export default function MemberProfilePage() {
         setCommentsCount(totalComments);
       } catch (e) {
         // ignore
+      } finally {
+        setLoading(false);
       }
     })();
   }, [member]);
@@ -119,18 +157,42 @@ export default function MemberProfilePage() {
 
         <div className="mt-10">
           <div className="max-w-3xl mx-auto">
-            <div className="border-b mb-6">
-              <nav className="flex gap-6">
-                <button className="py-2">Articles ({articlesCount})</button>
-                <button className="py-2">Liked ({likesCount})</button>
-                <button className="py-2">Comments ({commentsCount})</button>
-              </nav>
-            </div>
+            <h3 className="text-xl font-bold mb-6">
+              Artikel oleh {member.name}
+            </h3>
 
-            {/* Placeholder area - list of user's articles could be rendered here */}
-            <div className="text-center text-gray-600">
-              Daftar artikel penulis akan ditampilkan di sini.
-            </div>
+            {loading ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {Array.from({ length: 3 }).map((_, idx) => (
+                  <article
+                    key={`skeleton-${idx}`}
+                    className="rounded-xl overflow-hidden border border-gray-100 bg-white animate-pulse"
+                  >
+                    <div className="w-full h-48 bg-gray-200" />
+                    <div className="p-4">
+                      <div className="h-4 w-1/3 bg-gray-200 rounded mb-3" />
+                      <div className="h-5 w-5/6 bg-gray-200 rounded mb-2" />
+                      <div className="h-4 w-full bg-gray-100 rounded mb-2" />
+                      <div className="h-4 w-4/5 bg-gray-100 rounded" />
+                    </div>
+                  </article>
+                ))}
+              </div>
+            ) : articles.length === 0 ? (
+              <div className="text-center text-gray-500 py-8">
+                Belum ada artikel yang ditulis oleh {member.name}.
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {articles.map((article) => (
+                  <ArticleCard
+                    key={article.id}
+                    article={article}
+                    href={`/artikel/${article.id}`}
+                  />
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </section>

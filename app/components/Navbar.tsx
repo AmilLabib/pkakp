@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
+import MotionButton from "./MotionButton";
 
 export default function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -65,7 +66,7 @@ export default function Navbar() {
         </div>
 
         <div className="flex items-center gap-4">
-          <button
+          <MotionButton
             type="button"
             className="lg:hidden p-2 rounded-md bg-white/90 shadow-md"
             onClick={() => setIsMobileOpen((s) => !s)}
@@ -126,7 +127,7 @@ export default function Navbar() {
                 />
               </svg>
             )}
-          </button>
+          </MotionButton>
 
           <nav className="hidden lg:flex items-center gap-4 md:gap-20 font-poppins pr-2 md:pr-12">
             <Link
@@ -142,7 +143,7 @@ export default function Navbar() {
               onMouseEnter={openTentangMenu}
               onMouseLeave={closeTentangMenu}
             >
-              <button
+              <MotionButton
                 type="button"
                 onClick={toggleTentangMenu}
                 className="relative inline-flex items-center gap-1 px-2 py-1 text-[#171b23] font-base text-sm md:text-base hover:opacity-90 after:content-[''] after:absolute after:top-1/2 after:left-1/2 after:-translate-x-1/2 after:-translate-y-1/2 after:h-16 md:after:h-20 after:w-[calc(100%+1rem)] after:bg-linear-to-t after:from-[#f4c42e] after:to-transparent after:opacity-0 hover:after:opacity-100 after:transition-opacity after:duration-300"
@@ -153,7 +154,7 @@ export default function Navbar() {
                 <span className="relative z-10 ml-2">
                   <Image src="/down.svg" alt="" width={9} height={9} />
                 </span>
-              </button>
+              </MotionButton>
 
               {isTentangOpen && (
                 <div
@@ -236,7 +237,7 @@ export default function Navbar() {
         >
           <div className="flex items-center justify-between p-4 border-b">
             <div className="font-bold text-[#171b23]">Menu</div>
-            <button
+            <MotionButton
               type="button"
               onClick={closeMobileMenu}
               aria-label="Tutup menu"
@@ -264,7 +265,7 @@ export default function Navbar() {
                   strokeLinejoin="round"
                 />
               </svg>
-            </button>
+            </MotionButton>
           </div>
 
           <nav className="p-4 space-y-2">
@@ -277,7 +278,7 @@ export default function Navbar() {
             </Link>
 
             <div>
-              <button
+              <MotionButton
                 type="button"
                 className="relative flex items-center w-full text-left px-3 py-2 rounded-md hover:bg-gray-50 justify-between text-[#171b23] overflow-hidden after:content-[''] after:absolute after:inset-0 after:bg-linear-to-t after:from-[#f4c42e] after:to-transparent after:opacity-0 hover:after:opacity-100 after:transition-opacity after:duration-300 after:pointer-events-none"
                 onClick={() => setIsMobileTentangOpen((s) => !s)}
@@ -285,7 +286,7 @@ export default function Navbar() {
               >
                 <span className="relative z-10">Tentang</span>
                 <Image src="/down.svg" alt="" width={12} height={12} />
-              </button>
+              </MotionButton>
 
               {isMobileTentangOpen && (
                 <div className="pl-4 mt-1 space-y-1">

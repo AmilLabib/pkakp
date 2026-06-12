@@ -9,6 +9,7 @@ import {
   updateMember,
 } from "../../../lib/supabaseClient";
 import Toast from "../../components/Toast";
+import MotionButton from "../../components/MotionButton";
 
 type Pengurus = {
   id: string;
@@ -353,12 +354,12 @@ export default function AdminPengurus() {
     <section className="py-12">
       <div className="flex items-center justify-between mb-4">
         <h1 className="text-2xl font-extrabold">Daftar Pengurus</h1>
-        <button
+        <MotionButton
           onClick={openModal}
           className="bg-black text-white px-3 py-1 rounded"
         >
           Tambah
-        </button>
+        </MotionButton>
       </div>
 
       <div className="bg-white rounded shadow overflow-hidden">
@@ -386,30 +387,30 @@ export default function AdminPengurus() {
               </div>
               <div className="flex items-center gap-3">
                 <div className="flex flex-col">
-                  <button
+                  <MotionButton
                     onClick={() => moveUp(idx)}
                     disabled={idx === 0}
                     title="Naikkan"
                     className="text-sm text-gray-600 disabled:opacity-40"
                   >
                     ▲
-                  </button>
-                  <button
+                  </MotionButton>
+                  <MotionButton
                     onClick={() => moveDown(idx)}
                     disabled={idx === pengurus.length - 1}
                     title="Turunkan"
                     className="text-sm text-gray-600 disabled:opacity-40"
                   >
                     ▼
-                  </button>
+                  </MotionButton>
                 </div>
-                <button
+                <MotionButton
                   onClick={() => startEdit(p)}
                   className="text-sm text-blue-600"
                 >
                   Edit
-                </button>
-                <button
+                </MotionButton>
+                <MotionButton
                   onClick={() => {
                     // ask for confirmation
                     setDeleteTarget(p.id);
@@ -417,7 +418,7 @@ export default function AdminPengurus() {
                   className="text-sm text-red-600"
                 >
                   Hapus
-                </button>
+                </MotionButton>
               </div>
             </li>
           ))}
@@ -496,26 +497,26 @@ export default function AdminPengurus() {
             </div>
 
             <div className="mt-5 flex justify-end gap-2">
-              <button
+              <MotionButton
                 onClick={closeModal}
                 className="px-3 py-1 rounded border border-gray-300"
               >
                 Batal
-              </button>
+              </MotionButton>
               {editingId ? (
-                <button
+                <MotionButton
                   onClick={saveEdit}
                   className="px-3 py-1 rounded bg-blue-600 text-white"
                 >
                   Simpan Perubahan
-                </button>
+                </MotionButton>
               ) : (
-                <button
+                <MotionButton
                   onClick={add}
                   className="px-3 py-1 rounded bg-black text-white"
                 >
                   Simpan
-                </button>
+                </MotionButton>
               )}
             </div>
           </div>
@@ -531,13 +532,13 @@ export default function AdminPengurus() {
               dapat dibatalkan.
             </p>
             <div className="mt-4 flex justify-end gap-2">
-              <button
+              <MotionButton
                 onClick={() => setDeleteTarget(null)}
                 className="px-3 py-1 rounded border"
               >
                 Batal
-              </button>
-              <button
+              </MotionButton>
+              <MotionButton
                 onClick={() => {
                   // optimistic remove locally, then call server
                   remove(deleteTarget);
@@ -547,7 +548,7 @@ export default function AdminPengurus() {
                 className="px-3 py-1 rounded bg-red-600 text-white"
               >
                 Hapus
-              </button>
+              </MotionButton>
             </div>
           </div>
         </div>

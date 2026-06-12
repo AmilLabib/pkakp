@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import MotionButton from "./MotionButton";
 
 type Props = {
   currentPage: number;
@@ -19,7 +20,7 @@ export default function Pagination({
 
   return (
     <div className="mt-10 flex items-center justify-center gap-3 font-poppins text-[#171b23]">
-      <button
+      <MotionButton
         type="button"
         onClick={() => onPageChange(Math.max(1, currentPage - 1))}
         aria-label="Previous page"
@@ -27,10 +28,10 @@ export default function Pagination({
         disabled={currentPage === 1}
       >
         {"<"}
-      </button>
+      </MotionButton>
 
       {pages.map((p) => (
-        <button
+        <MotionButton
           key={p}
           type="button"
           onClick={() => onPageChange(p)}
@@ -42,10 +43,10 @@ export default function Pagination({
           aria-label={`Page ${p}`}
         >
           {p}
-        </button>
+        </MotionButton>
       ))}
 
-      <button
+      <MotionButton
         type="button"
         onClick={() => onPageChange(Math.min(totalPages, currentPage + 1))}
         aria-label="Next page"
@@ -53,7 +54,7 @@ export default function Pagination({
         disabled={currentPage === totalPages}
       >
         {">"}
-      </button>
+      </MotionButton>
     </div>
   );
 }

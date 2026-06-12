@@ -2,6 +2,7 @@
 
 import { useMemo, useState, useEffect } from "react";
 import { motion } from "framer-motion";
+import MotionButton from "../components/MotionButton";
 import FooterSection from "../components/FooterSection";
 import ArticleCard from "../components/ArticleCard";
 import Pagination from "../components/Pagination";
@@ -174,13 +175,13 @@ export default function ArtikelPage() {
         </motion.h2>
 
         <div className="mt-6 flex items-center gap-4">
-          <button
+          <MotionButton
             onClick={() => handleProtectedNav("/admin/artikel/editor")}
             className="bg-emerald-500 text-white px-4 py-2 rounded-full font-semibold"
           >
             + New Articles
-          </button>
-          <button
+          </MotionButton>
+          <MotionButton
             onClick={handleMyArticles}
             className={
               onlyMine
@@ -189,7 +190,7 @@ export default function ArtikelPage() {
             }
           >
             My Articles
-          </button>
+          </MotionButton>
         </div>
 
         <motion.div

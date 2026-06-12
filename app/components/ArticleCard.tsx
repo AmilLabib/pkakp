@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import ImageWithPlaceholder from "./shared/ImageWithPlaceholder";
+import MotionButton from "./MotionButton";
 import {
   fetchArticleLikeCount,
   fetchArticleCommentCount,
@@ -113,7 +114,7 @@ export default function ArticleCard({
       <div className="mt-3 flex items-center justify-between">
         <p className="text-sm text-[#171b23] font-poppins">{article.date}</p>
         <div className="flex gap-2 items-center">
-          <button
+          <MotionButton
             onClick={handleLike}
             aria-pressed={liked}
             className={`px-3 py-2 rounded-md bg-white border text-sm flex items-center gap-2 ${processingLike ? "opacity-60" : "hover:bg-gray-50"} ${liked ? "ring-1 ring-red-100" : ""}`}
@@ -137,7 +138,7 @@ export default function ArticleCard({
             >
               {likes}
             </span>
-          </button>
+          </MotionButton>
 
           <div className="px-3 py-2 rounded-md bg-white border text-sm flex items-center gap-2">
             <svg

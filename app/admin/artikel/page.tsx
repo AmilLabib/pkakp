@@ -10,6 +10,7 @@ import {
   fetchArticleCommentCount,
 } from "../../../lib/supabaseClient";
 import Toast from "../../components/Toast";
+import MotionButton from "../../components/MotionButton";
 
 type Article = {
   id: string;
@@ -227,12 +228,12 @@ export default function AdminArtikel() {
     <section className="py-12">
       <div className="flex items-center justify-between mb-4">
         <h1 className="text-2xl font-extrabold">Kelola Artikel</h1>
-        <button
+        <MotionButton
           onClick={() => openEditor()}
           className="bg-black text-white px-4 py-2 rounded hover:bg-gray-800 transition"
         >
           Tambah Artikel
-        </button>
+        </MotionButton>
       </div>
 
       <div className="bg-white rounded shadow overflow-hidden">
@@ -264,12 +265,12 @@ export default function AdminArtikel() {
                   {a.comments ?? 0}
                 </td>
                 <td className="p-3">
-                  <button
+                  <MotionButton
                     onClick={() => viewArticle(i)}
                     className="text-sm text-green-600 mr-3 hover:underline"
                   >
                     Lihat
-                  </button>
+                  </MotionButton>
                   {(!currentUser ||
                     currentUser.role === "admin" ||
                     a.author === currentUser.name ||
@@ -283,18 +284,18 @@ export default function AdminArtikel() {
                         .toLowerCase()
                         .includes(currentUser.email.toLowerCase()))) && (
                     <>
-                      <button
+                      <MotionButton
                         onClick={() => openEditor(i)}
                         className="text-sm text-blue-600 mr-3 hover:underline"
                       >
                         Edit
-                      </button>
-                      <button
+                      </MotionButton>
+                      <MotionButton
                         onClick={() => remove(i)}
                         className="text-sm text-red-600 hover:underline"
                       >
                         Hapus
-                      </button>
+                      </MotionButton>
                     </>
                   )}
                   {currentUser &&
@@ -344,18 +345,18 @@ export default function AdminArtikel() {
               <strong>{deleteTitle}</strong>?
             </p>
             <div className="flex justify-end gap-2">
-              <button
+              <MotionButton
                 onClick={cancelDelete}
                 className="bg-white border border-gray-300 px-4 py-2 rounded"
               >
                 Batal
-              </button>
-              <button
+              </MotionButton>
+              <MotionButton
                 onClick={confirmDelete}
                 className="bg-red-600 text-white px-4 py-2 rounded"
               >
                 Hapus
-              </button>
+              </MotionButton>
             </div>
           </div>
         </div>

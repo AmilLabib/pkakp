@@ -4,6 +4,7 @@ import { useMemo, useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import ImageWithPlaceholder from "../../components/shared/ImageWithPlaceholder";
+import MotionButton from "../../components/MotionButton";
 import FooterSection from "../../components/FooterSection";
 import {
   fetchArticles,
@@ -78,9 +79,16 @@ export default function ArticleDetailPage() {
   }, []);
 
   const article = useMemo(() => {
-    if (!Number.isFinite(id)) return undefined;
-    return articles[id];
-  }, [id, articles]);
+    // Support both index-based (legacy) and UUID-based lookups
+    if (Number.isFinite(id)) {
+      return articles[id];
+    }
+    // Try finding by UUID
+    if (idStr) {
+      return articles.find((a) => a.id === idStr);
+    }
+    return undefined;
+  }, [id, idStr, articles]);
   // compute recent and fetch likes/comments for the article
   const recent = articles.slice(0, 5).filter((_, i) => i !== id);
   useEffect(() => {
@@ -199,7 +207,7 @@ export default function ArticleDetailPage() {
           </p>
 
           <div className="flex items-center gap-3 mb-6">
-            <button
+            <MotionButton
               onClick={handleLike}
               aria-pressed={liked}
               className={`px-3 py-2 rounded-md bg-white border flex items-center gap-2 ${liked ? "ring-1 ring-red-100" : ""}`}
@@ -223,7 +231,7 @@ export default function ArticleDetailPage() {
               >
                 {likesCount}
               </span>
-            </button>
+            </MotionButton>
 
             <div className="px-3 py-2 rounded-md bg-white border flex items-center gap-2">
               <svg
@@ -277,13 +285,13 @@ export default function ArticleDetailPage() {
                 placeholder="Tulis komentar..."
               />
               <div className="flex justify-end">
-                <button
+                <MotionButton
                   type="submit"
                   disabled={posting}
                   className="bg-black text-white px-4 py-2 rounded"
                 >
                   Kirim
-                </button>
+                </MotionButton>
               </div>
             </form>
 

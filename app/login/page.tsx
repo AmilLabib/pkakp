@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
+import MotionButton from "../components/MotionButton";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -62,32 +63,32 @@ export default function LoginPage() {
 
         {mode === null && (
           <div className="space-y-3">
-            <button
+            <MotionButton
               onClick={() => setMode("admin")}
               className="w-full bg-black text-white px-4 py-2 rounded font-semibold"
             >
               Masuk sebagai Administrator
-            </button>
+            </MotionButton>
 
-            <button
+            <MotionButton
               type="button"
               onClick={handleStafClick}
               className="w-full border px-4 py-2 rounded hover:bg-gray-50"
             >
               Masuk sebagai Staf
-            </button>
+            </MotionButton>
           </div>
         )}
 
         {mode === "admin" && (
           <div>
             <div className="mb-4">
-              <button
+              <MotionButton
                 onClick={() => setMode(null)}
                 className="text-sm text-gray-600 underline"
               >
                 ← Kembali
-              </button>
+              </MotionButton>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -119,12 +120,12 @@ export default function LoginPage() {
               {error && <div className="text-sm text-red-600">{error}</div>}
 
               <div className="flex items-center justify-between">
-                <button
+                <MotionButton
                   type="submit"
                   className="bg-black text-white px-4 py-2 rounded font-semibold"
                 >
                   Masuk
-                </button>
+                </MotionButton>
               </div>
             </form>
 
@@ -137,16 +138,16 @@ export default function LoginPage() {
         {mode === "staf" && (
           <div>
             <div className="mb-4">
-              <button
+              <MotionButton
                 onClick={() => setMode(null)}
                 className="text-sm text-gray-600 underline"
               >
                 ← Kembali
-              </button>
+              </MotionButton>
             </div>
 
             <div className="mt-2">
-              <button
+              <MotionButton
                 type="button"
                 onClick={startGoogleAuth}
                 className="w-full inline-flex items-center justify-center gap-2 border px-4 py-2 rounded hover:bg-gray-50"
@@ -157,7 +158,7 @@ export default function LoginPage() {
                   className="w-5 h-5"
                 />
                 <span>Masuk dengan Google (Email PKN STAN)</span>
-              </button>
+              </MotionButton>
             </div>
 
             <p className="mt-4 text-xs text-gray-500">

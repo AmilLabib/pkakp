@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { motion } from "framer-motion";
 import ArticleCard, { type Article } from "./ArticleCard";
+import MotionButton from "./MotionButton";
 import { fetchArticles } from "../../lib/supabaseClient";
 import {
   excerptFromHtml,
@@ -128,22 +129,22 @@ export default function ArticlesSection() {
 
           {articles.length > itemsPerView && (
             <div className="pointer-events-none absolute inset-y-0 left-0 right-0 flex items-center justify-between">
-              <button
+              <MotionButton
                 type="button"
                 onClick={prevPage}
                 className="pointer-events-auto ml-2 md:-ml-5 h-10 w-10 rounded-full bg-white/95 text-[#143434] shadow-md hover:brightness-95 transition flex items-center justify-center"
                 aria-label="Artikel sebelumnya"
               >
                 <ArrowLeft size={35} />
-              </button>
-              <button
+              </MotionButton>
+              <MotionButton
                 type="button"
                 onClick={nextPage}
                 className="pointer-events-auto mr-2 md:-mr-5 h-10 w-10 rounded-full bg-white/95 text-[#143434] shadow-md hover:brightness-95 transition flex items-center justify-center"
                 aria-label="Artikel selanjutnya"
               >
                 <ArrowLeft size={35} className="rotate-180" />
-              </button>
+              </MotionButton>
             </div>
           )}
         </div>
@@ -155,16 +156,15 @@ export default function ArticlesSection() {
           viewport={{ once: true, amount: 0.35 }}
           transition={{ duration: 0.55, ease: easeOut, delay: 0.1 }}
         >
-          <motion.button
+          <MotionButton
             type="button"
             onClick={() => router.push("/artikel")}
             className="font-poppins rounded-full bg-[#f2c22e] text-[#143434] font-bold w-full sm:w-10/12 md:w-1/2 px-4 md:px-10 py-2.5 hover:brightness-95 transition cursor-pointer max-w-[420px]"
             whileHover={{ scale: 1.03 }}
             whileTap={{ scale: 0.98 }}
-            transition={{ duration: 0.2, ease: easeOut }}
           >
             LIHAT SELENGKAPNYA
-          </motion.button>
+          </MotionButton>
         </motion.div>
       </div>
     </section>
