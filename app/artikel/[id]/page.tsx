@@ -12,6 +12,7 @@ import {
   fetchCommentsByArticle,
   addArticleComment,
   toggleArticleLike,
+  hasUserLikedArticle,
 } from "../../../lib/supabaseClient";
 import {
   extractFirstImageSrc,
@@ -33,6 +34,7 @@ export default function ArticleDetailPage() {
   const id = idStr ? Number(idStr) : NaN;
 
   const [articles, setArticles] = useState<Article[]>([]);
+  const [loading, setLoading] = useState(true);
   // article list
   const [likesCount, setLikesCount] = useState<number>(0);
   const [comments, setComments] = useState<any[]>([]);
@@ -74,6 +76,8 @@ export default function ArticleDetailPage() {
         }
       } catch (e) {
         // ignore
+      } finally {
+        setLoading(false);
       }
     })();
   }, []);
@@ -102,6 +106,21 @@ export default function ArticleDetailPage() {
             setLikesCount(l.count ?? 0);
             setComments(Array.isArray(c.data) ? c.data : []);
           }
+
+          // Check if current logged-in user already liked this article
+          try {
+            const res = await fetch("/api/admin/me");
+            if (res.ok) {
+              const json = await res.json();
+              const email = json?.payload?.email;
+              if (email && mounted) {
+                const alreadyLiked = await hasUserLikedArticle(String(article.id), email);
+                setLiked(alreadyLiked);
+              }
+            }
+          } catch {
+            // Not logged in — liked stays false
+          }
         }
       } catch (e) {
         // ignore
@@ -111,6 +130,63 @@ export default function ArticleDetailPage() {
       mounted = false;
     };
   }, [article?.id]);
+
+  if (loading) {
+    return (
+      <main className="w-full overflow-x-hidden bg-white pt-24 md:pt-28">
+        <section className="max-w-900 mx-auto px-5 md:px-8 pb-12 md:pb-16 grid grid-cols-1 lg:grid-cols-3 gap-8 animate-pulse">
+          <div className="lg:col-span-2">
+            {/* Title skeleton */}
+            <div className="h-9 bg-gray-200 rounded w-3/4 mb-3" />
+            <div className="h-4 bg-gray-200 rounded w-1/3 mb-2" />
+            <div className="h-4 bg-gray-100 rounded w-1/4 mb-6" />
+
+            {/* Like & comment buttons skeleton */}
+            <div className="flex items-center gap-3 mb-6">
+              <div className="h-10 w-20 bg-gray-200 rounded-md" />
+              <div className="h-10 w-20 bg-gray-200 rounded-md" />
+            </div>
+
+            {/* Image skeleton */}
+            <div className="w-full h-120 bg-gray-200 rounded-md mb-6" />
+
+            {/* Content skeleton */}
+            <div className="space-y-3">
+              <div className="h-4 bg-gray-200 rounded w-full" />
+              <div className="h-4 bg-gray-200 rounded w-full" />
+              <div className="h-4 bg-gray-200 rounded w-5/6" />
+              <div className="h-4 bg-gray-100 rounded w-full" />
+              <div className="h-4 bg-gray-200 rounded w-4/5" />
+              <div className="h-4 bg-gray-100 rounded w-full" />
+              <div className="h-4 bg-gray-200 rounded w-2/3" />
+            </div>
+
+            {/* Comment section skeleton */}
+            <div className="mt-8">
+              <div className="h-5 bg-gray-200 rounded w-28 mb-3" />
+              <div className="h-24 bg-gray-100 rounded w-full mb-4" />
+            </div>
+          </div>
+
+          {/* Sidebar skeleton */}
+          <aside className="lg:col-span-1">
+            <div className="h-6 bg-gray-200 rounded w-2/3 mb-4" />
+            <div className="space-y-4">
+              {[...Array(4)].map((_, i) => (
+                <div key={i} className="flex gap-3 items-start">
+                  <div className="w-20 h-14 bg-gray-200 rounded-md shrink-0" />
+                  <div className="flex-1 space-y-2">
+                    <div className="h-4 bg-gray-200 rounded w-full" />
+                    <div className="h-3 bg-gray-100 rounded w-1/2" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </aside>
+        </section>
+      </main>
+    );
+  }
 
   if (!article) {
     return (
@@ -129,6 +205,7 @@ export default function ArticleDetailPage() {
   const handleLike = async () => {
     if (!article?.id) return;
     try {
+      // Must be logged in to like
       const res = await fetch("/api/admin/me");
       if (!res.ok) {
         window.location.href = "/login";

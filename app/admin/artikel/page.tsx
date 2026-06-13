@@ -170,7 +170,7 @@ export default function AdminArtikel() {
         });
         return;
       }
-      router.push(`/artikel/${foundIndex}`);
+      window.open(`/artikel/${foundIndex}`, "_blank", "noopener,noreferrer");
     } catch (e) {
       setToast({
         message: "Terjadi kesalahan saat membuka artikel",

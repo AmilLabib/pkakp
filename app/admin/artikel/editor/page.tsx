@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import React, { Suspense, useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import dynamic from "next/dynamic";
 import { insertArticle, updateArticle } from "../../../../lib/supabaseClient";
 import Toast from "../../../components/Toast";
@@ -27,20 +27,59 @@ type DraftPayload = {
 };
 
 export default function AdminArtikelEditorPage() {
+  return (
+    <Suspense fallback={<div className="py-12 px-6 md:px-10 max-w-5xl mx-auto"><p className="text-gray-500">Memuat Editor...</p></div>}>
+      <EditorContent />
+    </Suspense>
+  );
+}
+
+function EditorContent() {
   const [articleId, setArticleId] = useState<string | null>(null);
   const [title, setTitle] = useState("");
   const [author, setAuthor] = useState("");
   const [content, setContent] = useState("");
   const [userRole, setUserRole] = useState<string | null>(null);
   const [isAuthorReadonly, setIsAuthorReadonly] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [showPublishedModal, setShowPublishedModal] = useState(false);
   const [toast, setToast] = useState<{
     message: string;
     type?: "info" | "success" | "error";
   } | null>(null);
 
+  // Load article data: from URL query param (edit mode) or sessionStorage (draft)
   useEffect(() => {
+    const idFromUrl = searchParams.get("id");
+
+    if (idFromUrl) {
+      // Edit mode: fetch article by ID from the API
+      setIsLoading(true);
+      (async () => {
+        try {
+          const res = await fetch(`/api/admin/articles/${idFromUrl}`);
+          if (res.ok) {
+            const json = await res.json();
+            const article = json?.data;
+            if (article) {
+              setArticleId(String(article.id));
+              setTitle(article.title || "");
+              setAuthor(article.author || "");
+              setContent(article.desc || "");
+            }
+          }
+        } catch (e) {
+          console.error("Failed to fetch article for editing:", e);
+        } finally {
+          setIsLoading(false);
+        }
+      })();
+      return;
+    }
+
+    // Fallback: load from sessionStorage draft
     const raw = sessionStorage.getItem("admin-article-draft");
     if (!raw) return;
 
@@ -53,7 +92,7 @@ export default function AdminArtikelEditorPage() {
     } catch {
       // ignore invalid draft format
     }
-  }, []);
+  }, [searchParams]);
 
   useEffect(() => {
     (async () => {
@@ -145,6 +184,24 @@ export default function AdminArtikelEditorPage() {
 
   return (
     <section className="py-12 px-6 md:px-10 max-w-5xl mx-auto">
+      {isLoading ? (
+        <div className="flex items-center justify-center py-24">
+          <p className="text-gray-500">Memuat artikel...</p>
+        </div>
+      ) : (
+        <>
+      <div className="mb-4">
+        <MotionButton
+          onClick={() => router.push("/admin/artikel")}
+          className="inline-flex items-center gap-1 text-gray-600 hover:text-black transition text-sm"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+          </svg>
+          Kembali ke Daftar Artikel
+        </MotionButton>
+      </div>
+
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-extrabold">Editor Artikel</h1>
         <div className="flex gap-2">
@@ -182,6 +239,8 @@ export default function AdminArtikelEditorPage() {
       </div>
 
       <CustomEditor content={content} onChange={setContent} />
+        </>
+      )}
 
       {showPublishedModal && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">

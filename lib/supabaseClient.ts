@@ -631,6 +631,22 @@ export async function fetchLikesByUserName(user_name?: string) {
   }
 }
 
+/**
+ * Check if a user (by email) has already liked a specific article.
+ */
+export async function hasUserLikedArticle(articleId: string, userEmail: string): Promise<boolean> {
+  try {
+    const { data } = await supabase
+      .from("article_likes")
+      .select("id")
+      .eq("article_id", articleId)
+      .eq("user_email", userEmail);
+    return Array.isArray(data) && data.length > 0;
+  } catch {
+    return false;
+  }
+}
+
 export async function fetchCommentsByUserName(user_name?: string) {
   try {
     if (!user_name) return { data: null, error: null };
