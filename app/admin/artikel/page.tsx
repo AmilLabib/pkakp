@@ -34,6 +34,7 @@ type ArticleRow = {
 
 export default function AdminArtikel() {
   const [articles, setArticles] = useState<Article[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteIdx, setDeleteIdx] = useState<number | null>(null);
   const [deleteTitle, setDeleteTitle] = useState<string>("");
@@ -243,6 +244,16 @@ export default function AdminArtikel() {
         </MotionButton>
       </div>
 
+      <div className="mb-4">
+        <input
+          type="text"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          placeholder="Cari artikel berdasarkan judul..."
+          className="w-full border border-gray-300 px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-black/20"
+        />
+      </div>
+
       <div className="bg-white rounded shadow overflow-hidden">
         <table className="w-full text-left border-collapse">
           <thead className="bg-gray-50 border-b">
@@ -258,7 +269,13 @@ export default function AdminArtikel() {
             </tr>
           </thead>
           <tbody>
-            {articles.map((a, i) => (
+            {articles
+              .filter((a) =>
+                a.title.toLowerCase().includes(searchQuery.toLowerCase())
+              )
+              .map((a, i) => {
+                const originalIndex = articles.findIndex((orig) => orig.id === a.id);
+                return (
               <tr key={`${a.id}-${i}`} className="border-b hover:bg-gray-50">
                 <td className="p-3">{a.title}</td>
                 <td className="p-3 text-sm text-gray-600">{a.date}</td>
@@ -273,7 +290,7 @@ export default function AdminArtikel() {
                 </td>
                 <td className="p-3">
                   <MotionButton
-                    onClick={() => viewArticle(i)}
+                    onClick={() => viewArticle(originalIndex)}
                     className="text-sm text-green-600 mr-3 hover:underline"
                   >
                     Lihat
@@ -292,13 +309,13 @@ export default function AdminArtikel() {
                         .includes(currentUser.email.toLowerCase()))) && (
                     <>
                       <MotionButton
-                        onClick={() => openEditor(i)}
+                        onClick={() => openEditor(originalIndex)}
                         className="text-sm text-blue-600 mr-3 hover:underline"
                       >
                         Edit
                       </MotionButton>
                       <MotionButton
-                        onClick={() => remove(i)}
+                        onClick={() => remove(originalIndex)}
                         className="text-sm text-red-600 hover:underline"
                       >
                         Hapus
@@ -327,9 +344,10 @@ export default function AdminArtikel() {
                     )}
                 </td>
               </tr>
-            ))}
+                );
+              })}
 
-            {articles.length === 0 && (
+            {articles.filter((a) => a.title.toLowerCase().includes(searchQuery.toLowerCase())).length === 0 && (
               <tr>
                 <td
                   colSpan={currentUser?.role === "admin" ? 6 : 5}

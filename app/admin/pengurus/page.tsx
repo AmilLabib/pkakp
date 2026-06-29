@@ -41,6 +41,7 @@ export default function AdminPengurus() {
   } | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
 
   const openModal = () => setIsModalOpen(true);
 
@@ -319,9 +320,25 @@ export default function AdminPengurus() {
         </MotionButton>
       </div>
 
+      <div className="mb-4">
+        <input
+          type="text"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          placeholder="Cari pengurus berdasarkan nama..."
+          className="w-full border border-gray-300 px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-black/20"
+        />
+      </div>
+
       <div className="bg-white rounded shadow overflow-hidden">
         <ul>
-          {pengurus.map((p, idx) => (
+          {pengurus
+            .filter((p) =>
+              p.name.toLowerCase().includes(searchQuery.toLowerCase())
+            )
+            .map((p) => {
+              const originalIdx = pengurus.findIndex((orig) => orig.id === p.id);
+              return (
             <li
               key={p.id}
               className="flex items-center justify-between p-3 border-t"
@@ -357,16 +374,16 @@ export default function AdminPengurus() {
               <div className="flex items-center gap-3">
                 <div className="flex flex-col">
                   <MotionButton
-                    onClick={() => moveUp(idx)}
-                    disabled={idx === 0}
+                    onClick={() => moveUp(originalIdx)}
+                    disabled={originalIdx === 0}
                     title="Naikkan"
                     className="text-sm text-gray-600 disabled:opacity-40"
                   >
                     ▲
                   </MotionButton>
                   <MotionButton
-                    onClick={() => moveDown(idx)}
-                    disabled={idx === pengurus.length - 1}
+                    onClick={() => moveDown(originalIdx)}
+                    disabled={originalIdx === pengurus.length - 1}
                     title="Turunkan"
                     className="text-sm text-gray-600 disabled:opacity-40"
                   >
@@ -390,7 +407,8 @@ export default function AdminPengurus() {
                 </MotionButton>
               </div>
             </li>
-          ))}
+              );
+            })}
         </ul>
       </div>
 

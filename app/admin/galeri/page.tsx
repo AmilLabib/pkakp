@@ -36,6 +36,7 @@ export default function AdminGaleri() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
 
   const openModal = () => setIsModalOpen(true);
 
@@ -258,9 +259,23 @@ export default function AdminGaleri() {
         </MotionButton>
       </div>
 
+      <div className="mb-4">
+        <input
+          type="text"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          placeholder="Cari galeri berdasarkan judul..."
+          className="w-full border border-gray-300 px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-black/20"
+        />
+      </div>
+
       <div className="bg-white rounded shadow overflow-hidden">
         <ul>
-          {items.map((p) => (
+          {items
+            .filter((p) =>
+              p.title.toLowerCase().includes(searchQuery.toLowerCase())
+            )
+            .map((p) => (
             <li
               key={p.id}
               className="flex items-center justify-between p-3 border-t"
