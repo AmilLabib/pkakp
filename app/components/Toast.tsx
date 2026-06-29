@@ -1,7 +1,13 @@
 "use client";
 
 import { useEffect } from "react";
+import { toast as sonnerToast } from "sonner";
 
+/**
+ * Legacy Toast bridge — keeps existing API but routes to Sonner.
+ * Usage stays the same: <Toast message="..." type="success" onClose={() => ...} />
+ * But now rendered by the global <Toaster /> in admin layout.
+ */
 export default function Toast({
   message,
   type = "info",
@@ -12,22 +18,36 @@ export default function Toast({
   onClose?: () => void;
 }) {
   useEffect(() => {
-    const t = setTimeout(() => onClose && onClose(), 3500);
+    if (type === "success") {
+      sonnerToast.success(message);
+    } else if (type === "error") {
+      sonnerToast.error(message);
+    } else {
+      sonnerToast(message);
+    }
+
+    // Auto-dismiss the parent state after a short delay
+    const t = setTimeout(() => onClose && onClose(), 500);
     return () => clearTimeout(t);
-  }, [onClose]);
+  }, [message, type, onClose]);
 
-  const color =
-    type === "success"
-      ? "bg-green-500"
-      : type === "error"
-        ? "bg-red-500"
-        : "bg-gray-800";
+  // Don't render anything — Sonner handles the UI
+  return null;
+}
 
-  return (
-    <div
-      className={`fixed bottom-6 right-6 px-4 py-2 rounded text-white ${color} shadow-lg`}
-    >
-      {message}
-    </div>
-  );
+/**
+ * Imperative toast helper for direct usage without the component.
+ * e.g.: showToast("Berhasil!", "success")
+ */
+export function showToast(
+  message: string,
+  type: "info" | "success" | "error" = "info",
+) {
+  if (type === "success") {
+    sonnerToast.success(message);
+  } else if (type === "error") {
+    sonnerToast.error(message);
+  } else {
+    sonnerToast(message);
+  }
 }

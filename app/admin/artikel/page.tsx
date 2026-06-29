@@ -11,6 +11,7 @@ import {
 } from "../../../lib/supabaseClient";
 import Toast from "../../components/Toast";
 import MotionButton from "../../components/MotionButton";
+import LoadingOverlay from "../../components/LoadingOverlay";
 
 type Article = {
   id: string;
@@ -40,6 +41,7 @@ export default function AdminArtikel() {
     message: string;
     type?: "info" | "success" | "error";
   } | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
   const router = useRouter();
   const [currentUser, setCurrentUser] = useState<{
     name?: string;
@@ -199,12 +201,14 @@ export default function AdminArtikel() {
     const target = articles[deleteIdx];
     if (!target) return cancelDelete();
 
+    setIsProcessing(true);
     const previous = [...articles];
     // optimistic remove in UI
     setArticles((s) => s.filter((_, i) => i !== deleteIdx));
 
     // if no id or temp id, skip server delete
     if (!target.id || target.id.startsWith("temp-")) {
+      setIsProcessing(false);
       cancelDelete();
       return;
     }
@@ -221,11 +225,14 @@ export default function AdminArtikel() {
       setToast({ message: "Artikel berhasil dihapus", type: "success" });
     }
 
+    setIsProcessing(false);
     cancelDelete();
   };
 
   return (
     <section className="py-12">
+      <LoadingOverlay isLoading={isProcessing} message="Menghapus artikel..." />
+
       <div className="flex items-center justify-between mb-4">
         <h1 className="text-2xl font-extrabold">Kelola Artikel</h1>
         <MotionButton

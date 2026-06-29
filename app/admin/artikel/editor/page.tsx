@@ -6,6 +6,7 @@ import dynamic from "next/dynamic";
 import { insertArticle, updateArticle } from "../../../../lib/supabaseClient";
 import Toast from "../../../components/Toast";
 import MotionButton from "../../../components/MotionButton";
+import LoadingOverlay from "../../../components/LoadingOverlay";
 
 const CustomEditor = dynamic(
   () => import("../../../components/admin/artikel/CustomEditor"),
@@ -45,6 +46,7 @@ function EditorContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [showPublishedModal, setShowPublishedModal] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [toast, setToast] = useState<{
     message: string;
     type?: "info" | "success" | "error";
@@ -132,6 +134,8 @@ function EditorContent() {
   const saveAndPublish = async () => {
     if (!title.trim()) return;
 
+    setIsSaving(true);
+
     if (articleId) {
       const { error } = await updateArticle(articleId, {
         title: title.trim(),
@@ -145,13 +149,16 @@ function EditorContent() {
           message: `Gagal memperbarui artikel: ${String(error)}`,
           type: "error",
         });
+        setIsSaving(false);
         return;
       }
 
       sessionStorage.removeItem("admin-article-draft");
       localStorage.removeItem("admin-article-preview-live");
+      setIsSaving(false);
       // show published modal
       setShowPublishedModal(true);
+      setToast({ message: "Artikel berhasil diperbarui", type: "success" });
       return;
     }
 
@@ -168,6 +175,7 @@ function EditorContent() {
         message: `Gagal menyimpan artikel: ${String(error)}`,
         type: "error",
       });
+      setIsSaving(false);
       return;
     }
 
@@ -178,12 +186,14 @@ function EditorContent() {
 
     sessionStorage.removeItem("admin-article-draft");
     localStorage.removeItem("admin-article-preview-live");
+    setIsSaving(false);
     setShowPublishedModal(true);
     setToast({ message: "Artikel berhasil dipublikasikan", type: "success" });
   };
 
   return (
     <section className="py-12 px-6 md:px-10 max-w-5xl mx-auto">
+      <LoadingOverlay isLoading={isSaving} message="Menyimpan artikel..." />
       {isLoading ? (
         <div className="flex items-center justify-center py-24">
           <p className="text-gray-500">Memuat artikel...</p>

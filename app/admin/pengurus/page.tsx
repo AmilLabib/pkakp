@@ -10,6 +10,7 @@ import {
 } from "../../../lib/supabaseClient";
 import Toast from "../../components/Toast";
 import MotionButton from "../../components/MotionButton";
+import LoadingOverlay from "../../components/LoadingOverlay";
 
 type Pengurus = {
   id: string;
@@ -39,6 +40,7 @@ export default function AdminPengurus() {
     type?: "info" | "success" | "error";
   } | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
 
   const openModal = () => setIsModalOpen(true);
 
@@ -65,6 +67,7 @@ export default function AdminPengurus() {
     };
     setPengurus((s) => [newItem, ...s]);
     closeModal();
+    setIsProcessing(true);
 
     (async () => {
       try {
@@ -104,30 +107,6 @@ export default function AdminPengurus() {
             message: "Pengurus berhasil ditambahkan",
             type: "success",
           });
-          // refresh the list from server so ordering/ids/positions are accurate
-          try {
-            const { data: fetched, error: fetchErr } = await fetchMembers();
-            if (!fetchErr && fetched && fetched.length > 0) {
-              const mapped = fetched.map((d: unknown) => {
-                const r = d as Record<string, unknown>;
-                return {
-                  id: r.id ? String(r.id) : Date.now().toString(),
-                  name: typeof r.name === "string" ? r.name : "",
-                  role: typeof r.role === "string" ? r.role : "",
-                  role_group:
-                    typeof r.role_group === "string" ? r.role_group : null,
-                  staff_category:
-                    typeof r.staff_category === "string"
-                      ? r.staff_category
-                      : null,
-                  image: typeof r.photo === "string" ? r.photo : "",
-                } as Pengurus;
-              });
-              setPengurus(mapped);
-            }
-          } catch (e) {
-            // ignore refresh errors
-          }
         }
       } catch (e) {
         console.error("insertMember exception", e);
@@ -135,6 +114,8 @@ export default function AdminPengurus() {
           message: `Tambah pengurus gagal: ${String(e)}`,
           type: "error",
         });
+      } finally {
+        setIsProcessing(false);
       }
     })();
   };
@@ -151,6 +132,7 @@ export default function AdminPengurus() {
     setPengurus((s) => s.filter((x) => x.id !== id));
 
   const removeRemote = (id: string) => {
+    setIsProcessing(true);
     (async () => {
       try {
         const res = await fetch("/api/members/delete", {
@@ -165,24 +147,6 @@ export default function AdminPengurus() {
           setToast({ message: `Hapus pengurus gagal: ${err}`, type: "error" });
         } else {
           setToast({ message: "Pengurus berhasil dihapus", type: "success" });
-          // refresh list so positions/order are consistent
-          try {
-            const { data: fetched, error: fetchErr } = await fetchMembers();
-            if (!fetchErr && fetched && fetched.length > 0) {
-              const mapped = fetched.map((d: unknown) => {
-                const r = d as Record<string, unknown>;
-                return {
-                  id: r.id ? String(r.id) : Date.now().toString(),
-                  name: typeof r.name === "string" ? r.name : "",
-                  role: typeof r.role === "string" ? r.role : "",
-                  image: typeof r.photo === "string" ? r.photo : "",
-                } as Pengurus;
-              });
-              setPengurus(mapped);
-            }
-          } catch (e) {
-            // ignore
-          }
         }
       } catch (e) {
         console.error("deleteMember exception", e);
@@ -190,6 +154,8 @@ export default function AdminPengurus() {
           message: `Hapus pengurus gagal: ${String(e)}`,
           type: "error",
         });
+      } finally {
+        setIsProcessing(false);
       }
     })();
   };
@@ -207,6 +173,7 @@ export default function AdminPengurus() {
   const saveEdit = async () => {
     if (!editingId) return;
     let photoUrl = image;
+    setIsProcessing(true);
     try {
       setUploadError(null);
       if (newImageFile) {
@@ -232,8 +199,13 @@ export default function AdminPengurus() {
         }),
       });
       const json = await res.json();
-      if (!res.ok)
-        console.error("server updateMember error", json?.error || json);
+      if (!res.ok) {
+        const err = json?.error?.message ?? json?.error ?? "Unknown error";
+        console.error("server updateMember error", err);
+        setToast({ message: `Update pengurus gagal: ${err}`, type: "error" });
+      } else {
+        setToast({ message: "Pengurus berhasil diperbarui", type: "success" });
+      }
 
       // optimistic update local state
       setPengurus((s) =>
@@ -252,6 +224,7 @@ export default function AdminPengurus() {
       );
     } catch (e) {
       console.error(e);
+      setToast({ message: `Update pengurus gagal: ${String(e)}`, type: "error" });
     } finally {
       setEditingId(null);
       setNewImageFile(null);
@@ -259,24 +232,7 @@ export default function AdminPengurus() {
       setName("");
       setRole("");
       setIsModalOpen(false);
-      // refresh list to ensure server ordering/positions are reflected
-      try {
-        const { data: fetched, error: fetchErr } = await fetchMembers();
-        if (!fetchErr && fetched && fetched.length > 0) {
-          const mapped = fetched.map((d: unknown) => {
-            const r = d as Record<string, unknown>;
-            return {
-              id: r.id ? String(r.id) : Date.now().toString(),
-              name: typeof r.name === "string" ? r.name : "",
-              role: typeof r.role === "string" ? r.role : "",
-              image: typeof r.photo === "string" ? r.photo : "",
-            } as Pengurus;
-          });
-          setPengurus(mapped);
-        }
-      } catch (e) {
-        // ignore
-      }
+      setIsProcessing(false);
     }
   };
 
@@ -352,6 +308,7 @@ export default function AdminPengurus() {
 
   return (
     <section className="py-12">
+      <LoadingOverlay isLoading={isProcessing} message="Memproses pengurus..." />
       <div className="flex items-center justify-between mb-4">
         <h1 className="text-2xl font-extrabold">Daftar Pengurus</h1>
         <MotionButton
@@ -370,14 +327,26 @@ export default function AdminPengurus() {
               className="flex items-center justify-between p-3 border-t"
             >
               <div className="flex items-center gap-3">
-                {p.image ? (
+                {p.image && p.image.startsWith("http") ? (
                   <img
                     src={p.image}
                     alt={p.name}
                     className="w-12 h-12 rounded-full object-cover border"
+                    onError={(e) => {
+                      // Jika gambar gagal dimuat, ganti ke placeholder
+                      e.currentTarget.style.display = "none";
+                      e.currentTarget.parentElement?.insertAdjacentHTML(
+                        "afterbegin",
+                        '<div class="w-12 h-12 rounded-full bg-gray-200 border flex items-center justify-center text-gray-400 text-xs">No img</div>'
+                      );
+                    }}
+                    referrerPolicy="no-referrer"
+                    crossOrigin="anonymous"
                   />
                 ) : (
-                  <div className="w-12 h-12 rounded-full bg-gray-200 border" />
+                  <div className="w-12 h-12 rounded-full bg-gray-200 border flex items-center justify-center text-gray-400 text-xs">
+                    {p.name?.charAt(0)?.toUpperCase() || "?"}
+                  </div>
                 )}
 
                 <div>

@@ -10,6 +10,7 @@ import {
 } from "../../../lib/supabaseClient";
 import Toast from "../../components/Toast";
 import MotionButton from "../../components/MotionButton";
+import LoadingOverlay from "../../components/LoadingOverlay";
 
 type Prestasi = { id: string; title: string; year: string; image?: string };
 
@@ -30,6 +31,7 @@ export default function AdminPrestasi() {
   } | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
 
   const openModal = () => setIsModalOpen(true);
 
@@ -51,6 +53,7 @@ export default function AdminPrestasi() {
 
     setPrestasi((s) => [newItem, ...s]);
     closeModal();
+    setIsProcessing(true);
 
     (async () => {
       try {
@@ -68,6 +71,7 @@ export default function AdminPrestasi() {
             });
             // revert optimistic update
             setPrestasi((s) => s.filter((x) => x.id !== newItem.id));
+            setIsProcessing(false);
             return;
           }
           finalImage = up.data?.publicUrl ?? "";
@@ -103,25 +107,16 @@ export default function AdminPrestasi() {
           // revert optimistic update
           setPrestasi((s) => s.filter((x) => x.id !== newItem.id));
         } else {
-          setStatus("Berhasil menyimpan prestasi.");
+          setStatus(null);
           setToast({ message: "Prestasi berhasil disimpan", type: "success" });
-          // refresh list
-          try {
-            const fetched = await fetchPrestasi();
-            if (!fetched.error && fetched.data) {
-              const mapped = fetched.data.map((d: unknown) => {
-                const r = d as Record<string, unknown>;
-                return {
-                  id: r.id ? String(r.id) : Date.now().toString(),
-                  title: typeof r.title === "string" ? r.title : "",
-                  year:
-                    typeof r.year === "string" ? r.year : String(r.year ?? ""),
-                  image: typeof r.image === "string" ? r.image : "",
-                };
-              });
-              setPrestasi(mapped);
-            }
-          } catch (_) {}
+          // Update optimistic item with final image URL
+          if (finalImage !== newItem.image) {
+            setPrestasi((s) =>
+              s.map((x) =>
+                x.id === newItem.id ? { ...x, image: finalImage } : x,
+              ),
+            );
+          }
         }
       } catch (e) {
         console.error("insertPrestasi exception", e);
@@ -131,6 +126,8 @@ export default function AdminPrestasi() {
           type: "error",
         });
         setPrestasi((s) => s.filter((x) => x.id !== newItem.id));
+      } finally {
+        setIsProcessing(false);
       }
     })();
   };
@@ -147,6 +144,7 @@ export default function AdminPrestasi() {
   const saveEdit = async () => {
     if (!editingId) return;
     let finalImage = image;
+    setIsProcessing(true);
     try {
       if (newImageFile) {
         setStatus("Mengunggah gambar...");
@@ -157,6 +155,7 @@ export default function AdminPrestasi() {
             message: `Gagal mengunggah gambar: ${String(up.error)}`,
             type: "error",
           });
+          setIsProcessing(false);
           return;
         }
         finalImage = up.data?.publicUrl ?? finalImage;
@@ -196,19 +195,7 @@ export default function AdminPrestasi() {
       setTitle("");
       setYear("");
       setIsModalOpen(false);
-      // refresh list
-      try {
-        const fetched = await fetchPrestasi();
-        if (!fetched.error && fetched.data) {
-          const mapped = fetched.data.map((d: any) => ({
-            id: d.id?.toString() || Date.now().toString(),
-            title: d.title,
-            year: d.year,
-            image: d.image,
-          }));
-          setPrestasi(mapped);
-        }
-      } catch (_) {}
+      setIsProcessing(false);
     }
   };
 
@@ -224,7 +211,7 @@ export default function AdminPrestasi() {
     setPrestasi((s) => s.filter((x) => x.id !== id));
 
   const removeRemote = (id: string) => {
-    // attempt delete on supabase
+    setIsProcessing(true);
     (async () => {
       const { data, error } = await deletePrestasi(id);
       if (error) {
@@ -233,22 +220,11 @@ export default function AdminPrestasi() {
           message: `Hapus prestasi gagal: ${String(error)}`,
           type: "error",
         });
+        // revert: re-add item (we can't easily, but at least notify)
       } else {
         setToast({ message: "Prestasi berhasil dihapus", type: "success" });
-        // refresh list
-        try {
-          const fetched = await fetchPrestasi();
-          if (!fetched.error && fetched.data) {
-            const mapped = fetched.data.map((d: any) => ({
-              id: d.id?.toString() || Date.now().toString(),
-              title: d.title,
-              year: d.year,
-              image: d.image,
-            }));
-            setPrestasi(mapped);
-          }
-        } catch (_) {}
       }
+      setIsProcessing(false);
     })();
   };
 
@@ -273,6 +249,7 @@ export default function AdminPrestasi() {
 
   return (
     <section className="py-12">
+      <LoadingOverlay isLoading={isProcessing} message="Memproses prestasi..." />
       <div className="flex items-center justify-between mb-4">
         <h1 className="text-2xl font-extrabold">Daftar Prestasi</h1>
         <MotionButton

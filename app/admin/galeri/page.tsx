@@ -10,6 +10,7 @@ import {
 } from "../../../lib/supabaseClient";
 import Toast from "../../components/Toast";
 import MotionButton from "../../components/MotionButton";
+import LoadingOverlay from "../../components/LoadingOverlay";
 
 type Galeri = { id: string; title: string; desc?: string; image?: string };
 
@@ -34,6 +35,7 @@ export default function AdminGaleri() {
   } | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
 
   const openModal = () => setIsModalOpen(true);
 
@@ -55,6 +57,7 @@ export default function AdminGaleri() {
 
     setItems((s) => [newItem, ...s]);
     closeModal();
+    setIsProcessing(true);
 
     (async () => {
       try {
@@ -70,6 +73,7 @@ export default function AdminGaleri() {
               type: "error",
             });
             setItems((s) => s.filter((x) => x.id !== newItem.id));
+            setIsProcessing(false);
             return;
           }
           finalImage = up.data?.publicUrl ?? "";
@@ -104,20 +108,16 @@ export default function AdminGaleri() {
           }
           setItems((s) => s.filter((x) => x.id !== newItem.id));
         } else {
-          setStatus("Berhasil menyimpan galeri.");
+          setStatus(null);
           setToast({ message: "Galeri berhasil disimpan", type: "success" });
-          try {
-            const fetched = await fetchGaleri();
-            if (!fetched.error && fetched.data) {
-              const mapped = fetched.data.map((d: any) => ({
-                id: d.id?.toString() || Date.now().toString(),
-                title: d.title,
-                desc: d.desc,
-                image: d.image,
-              }));
-              setItems(mapped);
-            }
-          } catch (_) {}
+          // Update optimistic item with final image
+          if (finalImage !== newItem.image) {
+            setItems((s) =>
+              s.map((x) =>
+                x.id === newItem.id ? { ...x, image: finalImage } : x,
+              ),
+            );
+          }
         }
       } catch (e) {
         console.error("insertGaleri exception", e);
@@ -127,6 +127,8 @@ export default function AdminGaleri() {
           type: "error",
         });
         setItems((s) => s.filter((x) => x.id !== newItem.id));
+      } finally {
+        setIsProcessing(false);
       }
     })();
   };
@@ -143,6 +145,7 @@ export default function AdminGaleri() {
   const saveEdit = async () => {
     if (!editingId) return;
     let finalImage = image;
+    setIsProcessing(true);
     try {
       if (newImageFile) {
         setStatus("Mengunggah gambar...");
@@ -153,6 +156,7 @@ export default function AdminGaleri() {
             message: `Gagal mengunggah gambar: ${String(up.error)}`,
             type: "error",
           });
+          setIsProcessing(false);
           return;
         }
         finalImage = up.data?.publicUrl ?? finalImage;
@@ -191,18 +195,7 @@ export default function AdminGaleri() {
       setTitle("");
       setDesc("");
       setIsModalOpen(false);
-      try {
-        const fetched = await fetchGaleri();
-        if (!fetched.error && fetched.data) {
-          const mapped = fetched.data.map((d: any) => ({
-            id: d.id?.toString() || Date.now().toString(),
-            title: d.title,
-            desc: d.desc,
-            image: d.image,
-          }));
-          setItems(mapped);
-        }
-      } catch (_) {}
+      setIsProcessing(false);
     }
   };
 
@@ -217,6 +210,7 @@ export default function AdminGaleri() {
   const remove = (id: string) => setItems((s) => s.filter((x) => x.id !== id));
 
   const removeRemote = (id: string) => {
+    setIsProcessing(true);
     (async () => {
       const { data, error } = await deleteGaleri(id);
       if (error) {
@@ -227,19 +221,8 @@ export default function AdminGaleri() {
         });
       } else {
         setToast({ message: "Galeri berhasil dihapus", type: "success" });
-        try {
-          const fetched = await fetchGaleri();
-          if (!fetched.error && fetched.data) {
-            const mapped = fetched.data.map((d: any) => ({
-              id: d.id?.toString() || Date.now().toString(),
-              title: d.title,
-              desc: d.desc,
-              image: d.image,
-            }));
-            setItems(mapped);
-          }
-        } catch (_) {}
       }
+      setIsProcessing(false);
     })();
   };
 
@@ -264,6 +247,7 @@ export default function AdminGaleri() {
 
   return (
     <section className="py-12">
+      <LoadingOverlay isLoading={isProcessing} message="Memproses galeri..." />
       <div className="flex items-center justify-between mb-4">
         <h1 className="text-2xl font-extrabold">Daftar Galeri Kegiatan</h1>
         <MotionButton

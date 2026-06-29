@@ -255,17 +255,13 @@ export async function updateGaleri(
 export async function uploadGaleriImage(file: File) {
   const filename = `galeri/${Date.now()}-${file.name}`;
   try {
-    const dataUrl = await new Promise<string>((resolve, reject) => {
-      const fr = new FileReader();
-      fr.onload = () => resolve(String(fr.result));
-      fr.onerror = (err) => reject(err);
-      fr.readAsDataURL(file);
-    });
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("filename", filename);
 
     const res = await fetch("/api/upload-member-photo", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ filename, dataUrl }),
+      body: formData,
     });
     const json = await res.json();
     if (!res.ok)
@@ -425,19 +421,14 @@ export async function uploadFileToStorage(
 
 export async function uploadPrestasiImage(file: File) {
   const filename = `prestasi/${Date.now()}-${file.name}`;
-  // Use the server upload route (service role) to ensure bucket write access
   try {
-    const dataUrl = await new Promise<string>((resolve, reject) => {
-      const fr = new FileReader();
-      fr.onload = () => resolve(String(fr.result));
-      fr.onerror = (err) => reject(err);
-      fr.readAsDataURL(file);
-    });
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("filename", filename);
 
     const res = await fetch("/api/upload-member-photo", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ filename, dataUrl }),
+      body: formData,
     });
     const json = await res.json();
     if (!res.ok)
@@ -458,20 +449,14 @@ export async function uploadPrestasiImage(file: File) {
 
 export async function uploadMemberPhoto(file: File) {
   const filename = `members/${Date.now()}-${file.name}`;
-  // In client context we cannot use service role; route on server will handle actual upload.
-  // Convert file to data URL in caller if needed; to keep compatibility, attempt to POST here.
   try {
-    const dataUrl = await new Promise<string>((resolve, reject) => {
-      const fr = new FileReader();
-      fr.onload = () => resolve(String(fr.result));
-      fr.onerror = (err) => reject(err);
-      fr.readAsDataURL(file);
-    });
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("filename", filename);
 
     const res = await fetch("/api/upload-member-photo", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ filename, dataUrl }),
+      body: formData,
     });
     const json = await res.json();
     if (!res.ok)

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
+import { Toaster } from "sonner";
 import MotionButton from "../components/MotionButton";
 
 export default function AdminClientLayout({
@@ -265,6 +266,17 @@ export default function AdminClientLayout({
           <main className="flex-1">{children}</main>
         </div>
       </div>
+
+      {/* Sonner toast container */}
+      <Toaster
+        position="top-right"
+        richColors
+        closeButton
+        toastOptions={{
+          duration: 4000,
+          style: { fontFamily: "inherit" },
+        }}
+      />
 
       {/* Mobile off-canvas menu (hidden for staff) */}
       {!hideSidebar && (
