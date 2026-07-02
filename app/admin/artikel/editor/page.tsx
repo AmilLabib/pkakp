@@ -1,12 +1,13 @@
 "use client";
 
-import React, { Suspense, useEffect, useRef, useState } from "react";
+import React, { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import dynamic from "next/dynamic";
 import { insertArticle, updateArticle } from "../../../../lib/supabaseClient";
 import Toast from "../../../components/Toast";
 import MotionButton from "../../../components/MotionButton";
 import LoadingOverlay from "../../../components/LoadingOverlay";
+import AuthorSearchSelect from "../../../components/admin/artikel/AuthorSearchSelect";
 
 const CustomEditor = dynamic(
   () => import("../../../components/admin/artikel/CustomEditor"),
@@ -38,7 +39,8 @@ export default function AdminArtikelEditorPage() {
 function EditorContent() {
   const [articleId, setArticleId] = useState<string | null>(null);
   const [title, setTitle] = useState("");
-  const [author, setAuthor] = useState("");
+  // authors is stored as array; serialized as comma-separated string when saving
+  const [authors, setAuthors] = useState<string[]>([]);
   const [content, setContent] = useState("");
   const [userRole, setUserRole] = useState<string | null>(null);
   const [isAuthorReadonly, setIsAuthorReadonly] = useState(false);
@@ -68,7 +70,16 @@ function EditorContent() {
             if (article) {
               setArticleId(String(article.id));
               setTitle(article.title || "");
-              setAuthor(article.author || "");
+              // author may be comma-separated multi-author string
+              const rawAuthor = article.author || "";
+              setAuthors(
+                rawAuthor
+                  ? rawAuthor
+                      .split(",")
+                      .map((s: string) => s.trim())
+                      .filter(Boolean)
+                  : [],
+              );
               setContent(article.desc || "");
             }
           }
@@ -89,7 +100,15 @@ function EditorContent() {
       const parsed = JSON.parse(raw) as DraftPayload;
       setArticleId(parsed.id || null);
       setTitle(parsed.title || "");
-      setAuthor(parsed.author || "");
+      const rawAuthor = parsed.author || "";
+      setAuthors(
+        rawAuthor
+          ? rawAuthor
+              .split(",")
+              .map((s) => s.trim())
+              .filter(Boolean)
+          : [],
+      );
       setContent(parsed.content || "");
     } catch {
       // ignore invalid draft format
@@ -106,7 +125,8 @@ function EditorContent() {
         const role = payload?.role;
         const name = payload?.name || payload?.email || "";
         if (role === "staf") {
-          setAuthor(name);
+          // staff author is locked to their own name, pre-filled if not already set
+          setAuthors((prev) => (prev.length > 0 ? prev : name ? [name] : []));
           setIsAuthorReadonly(true);
         }
         setUserRole(role ?? null);
@@ -121,11 +141,11 @@ function EditorContent() {
       "admin-article-preview-live",
       JSON.stringify({
         title,
-        author,
+        author: authors.join(", "),
         content,
       }),
     );
-  }, [title, author, content]);
+  }, [title, authors, content]);
 
   const openPreview = () => {
     window.open("/admin/artikel/preview", "_blank", "noopener,noreferrer");
@@ -136,11 +156,14 @@ function EditorContent() {
 
     setIsSaving(true);
 
+    // Serialize authors array as comma-separated string
+    const authorString = authors.join(", ") || undefined;
+
     if (articleId) {
       const { error } = await updateArticle(articleId, {
         title: title.trim(),
         desc: content || "",
-        author: author || undefined,
+        author: authorString,
       });
 
       if (error) {
@@ -166,7 +189,7 @@ function EditorContent() {
       title: title.trim(),
       desc: content || "",
       image: "",
-      author: author || undefined,
+      author: authorString,
     });
 
     if (error) {
@@ -239,12 +262,13 @@ function EditorContent() {
         />
       </div>
       <div className="mb-4">
-        <input
-          value={author}
-          onChange={(e) => setAuthor(e.target.value)}
-          placeholder="Nama penulis"
-          className="w-full border px-3 py-2 rounded"
-          readOnly={isAuthorReadonly}
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          Penulis
+        </label>
+        <AuthorSearchSelect
+          selectedAuthors={authors}
+          onChange={setAuthors}
+          readonly={isAuthorReadonly}
         />
       </div>
 

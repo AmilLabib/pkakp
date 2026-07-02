@@ -18,6 +18,29 @@ function verifyToken(req: NextRequest) {
   }
 }
 
+/**
+ * Check if a user (by name or email) is among the article's authors.
+ * The author field may be a comma-separated list of names.
+ */
+function isAuthorMatch(
+  authorField: string,
+  name: string,
+  email: string,
+): boolean {
+  if (!authorField) return false;
+  const authorList = authorField
+    .split(",")
+    .map((s) => s.trim().toLowerCase())
+    .filter(Boolean);
+  const nameLower = name.toLowerCase();
+  const emailLower = email.toLowerCase();
+  return authorList.some(
+    (a) =>
+      (nameLower && (a === nameLower || a.includes(nameLower))) ||
+      (emailLower && (a === emailLower || a.includes(emailLower))),
+  );
+}
+
 export async function GET(req: NextRequest) {
   const payload = verifyToken(req);
   if (!payload)
@@ -35,11 +58,10 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ ok: true, data, error });
     }
 
-    // For staff: filter articles by their name or email
+    // For staff: filter articles where they are one of the authors
     const staffName = (payload.name || "").toString().trim();
     const staffEmail = (payload.email || "").toString().trim();
 
-    // Get all articles and filter client-side since Supabase filter can be tricky
     const { data: allData, error: allError } = await supabaseAdmin
       .from("articles")
       .select("*")
@@ -49,17 +71,10 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ ok: false, data: null, error: allError });
     }
 
-    // Filter to only articles authored by this staff
     const filtered = Array.isArray(allData)
-      ? allData.filter((art: any) => {
-          const author = String(art.author || "").trim();
-          return (
-            author === staffName ||
-            author === staffEmail ||
-            author.toLowerCase() === staffName.toLowerCase() ||
-            author.toLowerCase() === staffEmail.toLowerCase()
-          );
-        })
+      ? allData.filter((art: any) =>
+          isAuthorMatch(String(art.author || ""), staffName, staffEmail),
+        )
       : [];
 
     return NextResponse.json({ ok: true, data: filtered, error: null });
@@ -83,9 +98,22 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     let author = body.author ?? null;
 
-    // non-admin users must have their own name enforced as author
+    // Non-admin: ensure their own name is always included in the author list
     if (payload.role !== "admin") {
-      author = payload.name || payload.email || null;
+      const selfName = payload.name || payload.email || "";
+      if (selfName) {
+        // Parse the submitted author string and make sure selfName is present
+        const authorList = author
+          ? author
+              .split(",")
+              .map((s: string) => s.trim())
+              .filter(Boolean)
+          : [];
+        if (!authorList.includes(selfName)) {
+          authorList.unshift(selfName);
+        }
+        author = authorList.join(", ");
+      }
     }
 
     const { data, error } = await supabaseAdmin.from("articles").insert([

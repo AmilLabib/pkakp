@@ -18,6 +18,29 @@ function verifyToken(req: NextRequest) {
   }
 }
 
+/**
+ * Check if a user (by name or email) is among the article's authors.
+ * The author field may be a comma-separated list of names.
+ */
+function isAuthorMatch(
+  authorField: string,
+  name: string,
+  email: string,
+): boolean {
+  if (!authorField) return false;
+  const authorList = authorField
+    .split(",")
+    .map((s) => s.trim().toLowerCase())
+    .filter(Boolean);
+  const nameLower = name.toLowerCase();
+  const emailLower = email.toLowerCase();
+  return authorList.some(
+    (a) =>
+      (nameLower && (a === nameLower || a.includes(nameLower))) ||
+      (emailLower && (a === emailLower || a.includes(emailLower))),
+  );
+}
+
 export async function GET(req: NextRequest, { params }: any) {
   const payload = verifyToken(req);
   if (!payload)
@@ -33,16 +56,11 @@ export async function GET(req: NextRequest, { params }: any) {
       .select("*")
       .eq("id", id)
       .single();
+
     if (payload.role !== "admin") {
       const name = (payload.name || "").toString().trim();
       const email = (payload.email || "").toString().trim();
-      const author = (data?.author || "").toString();
-      const matches =
-        (name && author === name) ||
-        (email && author === email) ||
-        (name && author.toLowerCase().includes(name.toLowerCase())) ||
-        (email && author.toLowerCase().includes(email.toLowerCase()));
-      if (!data || !matches) {
+      if (!data || !isAuthorMatch(String(data?.author || ""), name, email)) {
         return NextResponse.json(
           { ok: false, error: "Forbidden" },
           { status: 403 },
@@ -83,19 +101,31 @@ export async function PATCH(req: NextRequest, { params }: any) {
           { ok: false, error: String(fetchErr) },
           { status: 500 },
         );
-      const author = (existing?.author || "").toString();
-      const matches =
-        (name && author === name) ||
-        (email && author === email) ||
-        (name && author.toLowerCase().includes(name.toLowerCase())) ||
-        (email && author.toLowerCase().includes(email.toLowerCase()));
-      if (!existing || !matches) {
+      if (
+        !existing ||
+        !isAuthorMatch(String(existing?.author || ""), name, email)
+      ) {
         return NextResponse.json(
           { ok: false, error: "Forbidden" },
           { status: 403 },
         );
       }
-      body.author = name || email;
+      // Non-admin: ensure their own name stays in the author list
+      const selfName = name || email;
+      if (selfName && body.author !== undefined) {
+        const authorList = body.author
+          ? body.author
+              .split(",")
+              .map((s: string) => s.trim())
+              .filter(Boolean)
+          : [];
+        if (!authorList.includes(selfName)) {
+          authorList.unshift(selfName);
+        }
+        body.author = authorList.join(", ");
+      } else if (selfName && body.author === undefined) {
+        // keep existing author as-is; don't override
+      }
     }
 
     const { data, error } = await supabaseAdmin
@@ -134,13 +164,10 @@ export async function DELETE(req: NextRequest, { params }: any) {
           { ok: false, error: String(fetchErr) },
           { status: 500 },
         );
-      const author = (existing?.author || "").toString();
-      const matches =
-        (name && author === name) ||
-        (email && author === email) ||
-        (name && author.toLowerCase().includes(name.toLowerCase())) ||
-        (email && author.toLowerCase().includes(email.toLowerCase()));
-      if (!existing || !matches) {
+      if (
+        !existing ||
+        !isAuthorMatch(String(existing?.author || ""), name, email)
+      ) {
         return NextResponse.json(
           { ok: false, error: "Forbidden" },
           { status: 403 },
