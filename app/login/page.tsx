@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import MotionButton from "../components/MotionButton";
+import LoadingOverlay from "../components/LoadingOverlay";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -12,9 +13,11 @@ export default function LoginPage() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
   // when user clicks "Masuk sebagai Staf", prefer direct access if session exists
   const handleStafClick = async () => {
+    setIsLoading(true);
     try {
       const res = await fetch("/api/admin/me");
       if (res.ok) {
@@ -26,10 +29,12 @@ export default function LoginPage() {
         }
       }
     } catch {}
+    setIsLoading(false);
     setMode("staf");
   };
 
   const startGoogleAuth = () => {
+    setIsLoading(true);
     // full navigation so server route can redirect to Google
     window.location.href = "/api/admin/google-auth";
   };
@@ -37,6 +42,7 @@ export default function LoginPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+    setIsLoading(true);
     try {
       const res = await fetch("/api/admin/login", {
         method: "POST",
@@ -46,17 +52,21 @@ export default function LoginPage() {
       const json = await res.json();
       if (!res.ok) {
         setError(json.error || "Login gagal");
+        setIsLoading(false);
         return;
       }
       // On success, server sets HttpOnly cookie; just navigate to admin
       router.push("/admin");
     } catch (err) {
       setError("Terjadi kesalahan. Coba lagi.");
+      setIsLoading(false);
     }
   };
 
   return (
     <main className="w-full min-h-screen flex items-center justify-center bg-white pt-24 md:pt-28">
+      <LoadingOverlay isLoading={isLoading} message="Memproses login..." />
+      
       <section className="max-w-md w-full mx-4 p-6 rounded-md shadow-md">
         <h1 className="text-2xl font-extrabold mb-2">Login Admin</h1>
         <p className="text-sm text-gray-600 mb-6">Pilih cara masuk:</p>

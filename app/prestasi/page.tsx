@@ -177,7 +177,7 @@ function AchievementCard({ item }: { item: Achievement }) {
       </div>
 
       {/* ── Info panel ─────────────────────────────────────────── */}
-      <div className="bg-[#2cb0a1] px-3 pt-3 pb-4 flex flex-col gap-1 relative">
+      <div className="bg-[#2cb0a1] px-3 pt-3 pb-4 flex flex-col gap-1 h-40 relative">
         {/* trophy icon bottom-right inside info panel */}
         <div className="absolute bottom-1 right-1 opacity-50 pointer-events-none">
           <TrophyIcon />
@@ -215,13 +215,13 @@ function AchievementCard({ item }: { item: Achievement }) {
 
         {/* place */}
         {item.place && (
-          <p className="text-white text-[10px] sm:text-xs font-semibold text-center leading-tight">
+          <p className="mt-2 text-white text-[10px] sm:text-xs font-semibold text-center leading-tight">
             {item.place}
           </p>
         )}
 
         {/* title */}
-        <h3 className="text-white text-xs sm:text-sm md:text-base font-extrabold text-center leading-snug font-montserrat">
+        <h3 className="text-white text-xs sm:text-sm md:text-xl font-extrabold text-center leading-snug font-montserrat">
           {item.title}
         </h3>
       </div>

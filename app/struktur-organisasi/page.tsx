@@ -9,11 +9,11 @@ import { useEffect, useState } from "react";
 
 type Member = {
   id?: string;
-  role: string; // legacy display title
+  role: string;
   name: string;
   photo?: string;
-  role_group?: string | null; // 'board_of_director' | 'head_of_division' | 'staff'
-  staff_category?: string | null; // for staff categories
+  role_group?: string | null;
+  staff_category?: string | null;
 };
 
 const fallback: Member[] = [
@@ -108,16 +108,12 @@ export default function StrukturOrganisasiPage() {
 
         <div className="mt-10 md:mt-35 max-w-500 mx-auto">
           {loading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-y-12 md:gap-y-20 gap-x-4 md:gap-x-0">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-10 md:gap-14">
               {Array.from({ length: 6 }).map((_, i) => (
                 <div
                   key={`skeleton-${i}`}
-                  className="text-center animate-pulse"
-                >
-                  <div className="mx-auto w-3/4 max-w-130 h-48 md:h-54 rounded-[18px] bg-gray-200/80 relative overflow-hidden" />
-                  <div className="mt-3 h-6 w-3/4 mx-auto bg-gray-200/80 rounded" />
-                  <div className="mt-2 h-5 w-1/2 mx-auto bg-gray-200/80 rounded" />
-                </div>
+                  className="w-full h-44 md:h-52 rounded-2xl bg-gray-200/80 animate-pulse mt-8"
+                />
               ))}
             </div>
           ) : (
@@ -128,13 +124,13 @@ export default function StrukturOrganisasiPage() {
                   Board of Directors
                 </h2>
                 <div className="w-32 h-1 bg-black mx-auto mt-3 mb-6" />
-                <div className="mt-20 grid grid-cols-1 md:grid-cols-2 gap-y-12 md:gap-y-20 gap-x-4 md:gap-x-0">
+                <div className="mt-20 grid grid-cols-1 md:grid-cols-2 gap-y-50 gap-x-6 md:gap-x-12">
                   {members
                     .filter((m) => m.role_group === "board_of_director")
                     .map((item, index) => (
                       <motion.article
                         key={item.id ?? `${item.role}-${index}`}
-                        className="text-center"
+                        className="w-full"
                         initial={{ opacity: 0, y: 30, scale: 0.98 }}
                         whileInView={{ opacity: 1, y: 0, scale: 1 }}
                         viewport={{ once: true, amount: 0.25 }}
@@ -144,56 +140,31 @@ export default function StrukturOrganisasiPage() {
                           ease: "easeOut",
                         }}
                       >
-                        <div>
-                          {item.id ? (
-                            <Link
-                              href={`/struktur-organisasi/${item.id}`}
-                              className="block"
-                            >
-                              <div className="mx-auto w-3/4 max-w-130 h-48 md:h-54 rounded-[18px] bg-[#f7d761] relative overflow-visible">
-                                <MemberImage src={item.photo} alt={item.role} />
-                              </div>
-
-                              <h3 className="mt-2 font-poppins font-semibold italic text-3xl leading-[0.95] text-[#ff971d]">
-                                {item.role}
-                              </h3>
-                              <p className="mt-1 font-poppins text-2xl leading-[0.95] text-black">
-                                {item.name}
-                              </p>
-                            </Link>
-                          ) : (
-                            <>
-                              <div className="mx-auto w-3/4 max-w-130 h-48 md:h-54 rounded-[18px] bg-[#f7d761] relative overflow-visible">
-                                <MemberImage src={item.photo} alt={item.role} />
-                              </div>
-
-                              <h3 className="mt-2 font-poppins font-semibold italic text-3xl leading-[0.95] text-[#ff971d]">
-                                {item.role}
-                              </h3>
-                              <p className="mt-1 font-poppins text-2xl leading-[0.95] text-black">
-                                {item.name}
-                              </p>
-                            </>
-                          )}
-                        </div>
+                        {item.id ? (
+                          <Link href={`/struktur-organisasi/${item.id}`}>
+                            <MemberCard item={item} />
+                          </Link>
+                        ) : (
+                          <MemberCard item={item} />
+                        )}
                       </motion.article>
                     ))}
                 </div>
               </section>
 
               {/* Head of Division */}
-              <section className="mb-10">
+              <section className="mb-10 mt-16 md:mt-24">
                 <h2 className="text-center font-montserrat text-4xl font-extrabold tracking-tight text-black">
                   Head of Division
                 </h2>
                 <div className="w-32 h-1 bg-black mx-auto mt-3 mb-6" />
-                <div className="mt-20 grid grid-cols-1 md:grid-cols-2 gap-y-12 md:gap-y-20 gap-x-4 md:gap-x-0">
+                <div className="mt-20 grid grid-cols-1 md:grid-cols-2 gap-y-36 gap-x-6 md:gap-x-12">
                   {members
                     .filter((m) => m.role_group === "head_of_division")
                     .map((item, index) => (
                       <motion.article
                         key={item.id ?? `${item.role}-${index}`}
-                        className="text-center"
+                        className="w-full"
                         initial={{ opacity: 0, y: 30, scale: 0.98 }}
                         whileInView={{ opacity: 1, y: 0, scale: 1 }}
                         viewport={{ once: true, amount: 0.25 }}
@@ -203,50 +174,25 @@ export default function StrukturOrganisasiPage() {
                           ease: "easeOut",
                         }}
                       >
-                        <div>
-                          {item.id ? (
-                            <Link
-                              href={`/struktur-organisasi/${item.id}`}
-                              className="block"
-                            >
-                              <div className="mx-auto w-3/4 max-w-130 h-48 md:h-54 rounded-[18px] bg-[#f7d761] relative overflow-visible">
-                                <MemberImage src={item.photo} alt={item.role} />
-                              </div>
-
-                              <h3 className="mt-2 font-poppins font-semibold italic text-3xl leading-[0.95] text-[#ff971d]">
-                                {item.role}
-                              </h3>
-                              <p className="mt-1 font-poppins text-2xl leading-[0.95] text-black">
-                                {item.name}
-                              </p>
-                            </Link>
-                          ) : (
-                            <>
-                              <div className="mx-auto w-3/4 max-w-130 h-48 md:h-54 rounded-[18px] bg-[#f7d761] relative overflow-visible">
-                                <MemberImage src={item.photo} alt={item.role} />
-                              </div>
-
-                              <h3 className="mt-2 font-poppins font-semibold italic text-3xl leading-[0.95] text-[#ff971d]">
-                                {item.role}
-                              </h3>
-                              <p className="mt-1 font-poppins text-2xl leading-[0.95] text-black">
-                                {item.name}
-                              </p>
-                            </>
-                          )}
-                        </div>
+                        {item.id ? (
+                          <Link href={`/struktur-organisasi/${item.id}`}>
+                            <MemberCard item={item} />
+                          </Link>
+                        ) : (
+                          <MemberCard item={item} />
+                        )}
                       </motion.article>
                     ))}
                 </div>
               </section>
 
               {/* Staff */}
-              <section className="mb-10">
+              <section className="mb-10 mt-16 md:mt-24">
                 <h2 className="text-center font-montserrat text-4xl font-extrabold tracking-tight text-black">
                   Staff
                 </h2>
                 <div className="w-32 h-1 bg-black mx-auto mt-3 mb-6" />
-                <div className="mt-6 flex justify-center gap-3 mb-6 ">
+                <div className="mt-6 flex flex-wrap justify-center gap-3 mb-10">
                   {[
                     { key: "all", label: "All" },
                     {
@@ -268,7 +214,7 @@ export default function StrukturOrganisasiPage() {
                       onClick={() => setStaffFilter(f.key)}
                       type="button"
                       className={`px-3 py-1 rounded-full text-sm transition cursor-pointer ${
-                        staffFilter === f.key ? "bg-black text-white" : "border"
+                        staffFilter === f.key ? "bg-black text-white" : "border border-gray-300"
                       }`}
                     >
                       {f.label}
@@ -276,7 +222,7 @@ export default function StrukturOrganisasiPage() {
                   ))}
                 </div>
 
-                <div className="mt-20 grid grid-cols-1 md:grid-cols-2 gap-y-12 md:gap-y-20 gap-x-4 md:gap-x-0">
+                <div className="mt-20 grid grid-cols-1 md:grid-cols-2 gap-y-36 gap-x-6 md:gap-x-12">
                   {members
                     .filter(
                       (m) =>
@@ -287,7 +233,7 @@ export default function StrukturOrganisasiPage() {
                     .map((item, index) => (
                       <motion.article
                         key={item.id ?? `${item.role}-${index}`}
-                        className="text-center"
+                        className="w-full"
                         initial={{ opacity: 0, y: 30, scale: 0.98 }}
                         whileInView={{ opacity: 1, y: 0, scale: 1 }}
                         viewport={{ once: true, amount: 0.25 }}
@@ -297,42 +243,13 @@ export default function StrukturOrganisasiPage() {
                           ease: "easeOut",
                         }}
                       >
-                        <div>
-                          {item.id ? (
-                            <Link
-                              href={`/struktur-organisasi/${item.id}`}
-                              className="block"
-                            >
-                              <div className="mx-auto w-3/4 max-w-130 h-48 md:h-54 rounded-[18px] bg-[#f7d761] relative overflow-visible">
-                                <MemberImage src={item.photo} alt={item.role} />
-                              </div>
-
-                              <h3 className="mt-2 font-poppins font-semibold italic text-3xl leading-[0.95] text-[#ff971d]">
-                                {item.staff_category
-                                  ? formatCategory(item.staff_category)
-                                  : item.role}
-                              </h3>
-                              <p className="mt-1 font-poppins text-2xl leading-[0.95] text-black">
-                                {item.name}
-                              </p>
-                            </Link>
-                          ) : (
-                            <>
-                              <div className="mx-auto w-3/4 max-w-130 h-48 md:h-54 rounded-[18px] bg-[#f7d761] relative overflow-visible">
-                                <MemberImage src={item.photo} alt={item.role} />
-                              </div>
-
-                              <h3 className="mt-2 font-poppins font-semibold italic text-3xl leading-[0.95] text-[#ff971d]">
-                                {item.staff_category
-                                  ? formatCategory(item.staff_category)
-                                  : item.role}
-                              </h3>
-                              <p className="mt-1 font-poppins text-2xl leading-[0.95] text-black">
-                                {item.name}
-                              </p>
-                            </>
-                          )}
-                        </div>
+                        {item.id ? (
+                          <Link href={`/struktur-organisasi/${item.id}`}>
+                            <MemberCard item={item} />
+                          </Link>
+                        ) : (
+                          <MemberCard item={item} />
+                        )}
                       </motion.article>
                     ))}
                 </div>
@@ -347,20 +264,55 @@ export default function StrukturOrganisasiPage() {
   );
 }
 
-function MemberImage({ src, alt }: { src?: string; alt?: string }) {
+function MemberCard({ item }: { item: Member }) {
   const [errored, setErrored] = useState(false);
-  const validSrc = src && String(src).trim() !== "" ? src : null;
+  const validSrc = item.photo && String(item.photo).trim() !== "" ? item.photo : null;
   const finalSrc = !errored && validSrc ? validSrc : "/profil-organisasi/1.png";
 
   return (
-    <Image
-      src={finalSrc}
-      alt={alt ?? "member"}
-      fill
-      onError={() => setErrored(true)}
-      unoptimized={!!validSrc && String(validSrc).includes("supabase.co")}
-      className="object-contain object-bottom scale-[1.15] md:scale-[1.25] -translate-y-2 md:-translate-y-7"
-    />
+    <div className="w-full flex justify-center items-center">
+      {/* Container utama, diatur posisinya secara relative untuk memuat dekorasi latar */}
+      <div className="relative w-full h-44 md:h-64 max-w-[95%] md:max-w-xl mx-auto">
+        
+        
+        {/* KOTAK LATAR KUNING UTAMA */}
+        <div className="absolute inset-0 bg-[#F4CF5D] rounded-[2rem] z-10"></div>
+
+        <div className="absolute -top-20 -left-10 inset-0 z-15">
+          <img src="/block.png" alt="" />
+        </div>
+
+        {/* KONTEN (FOTO & TEKS BERADA DI ATAS KOTAK KUNING) */}
+        <div className="absolute inset-0 z-20 flex">
+          {/* Bagian Foto Profil (Kiri) */}
+          <div className="w-5/12 h-full relative">
+            {/* Dibuat melampaui container kuning (overflow atas) */}
+            <div className="absolute bottom-0 left-[-15%] md:left-[-10%] w-[140%] h-[140%]">
+              <Image
+                src={finalSrc}
+                alt={item.name}
+                fill
+                onError={() => setErrored(true)}
+                unoptimized={!!validSrc && String(validSrc).includes("supabase.co")}
+                className="object-contain object-bottom drop-shadow-md"
+              />
+            </div>
+          </div>
+          
+          {/* Bagian Teks (Kanan) */}
+          <div className="w-7/12 flex flex-col justify-center items-center text-center pr-4 md:pr-6">
+            <h3 className="font-poppins font-bold italic text-xl md:text-[26px] leading-tight text-[#00a99d] mb-1">
+              {item.staff_category
+                ? formatCategory(item.staff_category)
+                : item.role}
+            </h3>
+            <p className="font-poppins font-medium text-lg md:text-xl text-black">
+              {item.name}
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }
 
