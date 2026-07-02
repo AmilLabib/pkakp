@@ -478,13 +478,15 @@ export async function uploadMemberPhoto(file: File) {
   }
 }
 
-// Fetch articles by author name (public, no auth required)
+// Fetch articles by author name (public, no auth required).
+// Uses wildcard match so it works even when author field contains
+// multiple comma-separated names (e.g. "Budi, Siti, Ahmad").
 export async function fetchArticlesByAuthor(authorName: string) {
   try {
     const { data, error } = await supabase
       .from("articles")
       .select("*")
-      .ilike("author", authorName)
+      .ilike("author", `%${authorName}%`)
       .order("created_at", { ascending: false });
     return { data, error };
   } catch (e) {

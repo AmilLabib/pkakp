@@ -43,7 +43,6 @@ function EditorContent() {
   const [authors, setAuthors] = useState<string[]>([]);
   const [content, setContent] = useState("");
   const [userRole, setUserRole] = useState<string | null>(null);
-  const [isAuthorReadonly, setIsAuthorReadonly] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -125,9 +124,9 @@ function EditorContent() {
         const role = payload?.role;
         const name = payload?.name || payload?.email || "";
         if (role === "staf") {
-          // staff author is locked to their own name, pre-filled if not already set
+          // Staff can add multiple authors, but their own name is pre-filled if empty
+          // API will enforce that their name is always included
           setAuthors((prev) => (prev.length > 0 ? prev : name ? [name] : []));
-          setIsAuthorReadonly(true);
         }
         setUserRole(role ?? null);
       } catch (e) {
@@ -268,7 +267,7 @@ function EditorContent() {
         <AuthorSearchSelect
           selectedAuthors={authors}
           onChange={setAuthors}
-          readonly={isAuthorReadonly}
+          readonly={false}
         />
       </div>
 
