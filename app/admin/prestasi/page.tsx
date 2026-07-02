@@ -12,18 +12,29 @@ import Toast from "../../components/Toast";
 import MotionButton from "../../components/MotionButton";
 import LoadingOverlay from "../../components/LoadingOverlay";
 
-type Prestasi = { id: string; title: string; year: string; image?: string };
+type Member = { name: string; role: string };
+
+type Prestasi = {
+  id: string;
+  title: string;
+  place: string;
+  image?: string;
+  members: Member[];
+};
+
+const EMPTY_MEMBER: Member = { name: "", role: "" };
 
 export default function AdminPrestasi() {
-  const [prestasi, setPrestasi] = useState<Prestasi[]>([
-    { id: "1", title: "Juara 1 Lomba X", year: "2024" },
-    { id: "2", title: "Penghargaan Y", year: "2023" },
-  ]);
+  const [prestasi, setPrestasi] = useState<Prestasi[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
+
+  // form fields
   const [title, setTitle] = useState("");
-  const [year, setYear] = useState("");
+  const [place, setPlace] = useState("");
   const [image, setImage] = useState<string>("");
   const [newImageFile, setNewImageFile] = useState<File | null>(null);
+  const [members, setMembers] = useState<Member[]>([{ ...EMPTY_MEMBER }]);
+
   const [status, setStatus] = useState<string | null>(null);
   const [toast, setToast] = useState<{
     message: string;
@@ -34,22 +45,63 @@ export default function AdminPrestasi() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
 
-  const openModal = () => setIsModalOpen(true);
+  // ── member helpers ──────────────────────────────────────────────
+  const updateMemberField = (
+    idx: number,
+    field: keyof Member,
+    value: string,
+  ) => {
+    setMembers((prev) =>
+      prev.map((m, i) => (i === idx ? { ...m, [field]: value } : m)),
+    );
+  };
+
+  const addMemberRow = () => {
+    if (members.length >= 3) return;
+    setMembers((prev) => [...prev, { ...EMPTY_MEMBER }]);
+  };
+
+  const removeMemberRow = (idx: number) => {
+    setMembers((prev) => prev.filter((_, i) => i !== idx));
+  };
+
+  // ── modal helpers ───────────────────────────────────────────────
+  const resetForm = () => {
+    setTitle("");
+    setPlace("");
+    setImage("");
+    setNewImageFile(null);
+    setMembers([{ ...EMPTY_MEMBER }]);
+    setEditingId(null);
+  };
+
+  const openModal = () => {
+    resetForm();
+    setIsModalOpen(true);
+  };
 
   const closeModal = () => {
     setIsModalOpen(false);
-    setTitle("");
-    setYear("");
-    setImage("");
+    resetForm();
   };
 
+  const onImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setImage(URL.createObjectURL(file));
+    setNewImageFile(file);
+  };
+
+  // ── add ─────────────────────────────────────────────────────────
   const add = () => {
     if (!title.trim()) return;
-    const newItem = {
+    const validMembers = members.filter((m) => m.name.trim());
+    const newItem: Prestasi = {
       id: Date.now().toString(),
       title,
-      year: year || new Date().getFullYear().toString(),
+      place,
       image,
+      members: validMembers,
     };
 
     setPrestasi((s) => [newItem, ...s]);
@@ -58,19 +110,15 @@ export default function AdminPrestasi() {
 
     (async () => {
       try {
-        // if a file was selected, upload it first
         let finalImage = newItem.image;
         if (newImageFile) {
           setStatus("Mengunggah gambar...");
           const up = await uploadPrestasiImage(newImageFile);
           if (up.error) {
-            console.error("uploadPrestasiImage error", up.error);
-            setStatus("Gagal mengunggah gambar: " + String(up.error));
             setToast({
               message: `Gagal mengunggah gambar: ${String(up.error)}`,
               type: "error",
             });
-            // revert optimistic update
             setPrestasi((s) => s.filter((x) => x.id !== newItem.id));
             setIsProcessing(false);
             return;
@@ -79,38 +127,22 @@ export default function AdminPrestasi() {
         }
 
         setStatus("Menyimpan prestasi...");
-        const { data, error } = await insertPrestasi({
+        const { error } = await insertPrestasi({
           title: newItem.title,
-          year: newItem.year,
+          place: newItem.place,
           image: finalImage,
+          members: validMembers,
         });
+
         if (error) {
-          console.error("insertPrestasi error", error, "data:", data);
-          const errAny = error as any;
-          const errCode = (errAny && (errAny.code || errAny.message)) || null;
-          if (
-            (errCode && String(errCode).includes("PGRST205")) ||
-            (errAny &&
-              (errAny.message || "").includes("Could not find the table"))
-          ) {
-            setStatus(
-              "Gagal menyimpan: tabel 'prestasi' tidak ditemukan di Supabase. Jalankan `scripts/supabase_schema.sql` di SQL Editor Supabase untuk membuat tabel.",
-            );
-          } else {
-            setStatus(
-              "Gagal menyimpan prestasi ke Supabase: " + JSON.stringify(error),
-            );
-            setToast({
-              message: `Gagal menyimpan prestasi: ${JSON.stringify(error)}`,
-              type: "error",
-            });
-          }
-          // revert optimistic update
+          setToast({
+            message: `Gagal menyimpan prestasi: ${JSON.stringify(error)}`,
+            type: "error",
+          });
           setPrestasi((s) => s.filter((x) => x.id !== newItem.id));
         } else {
           setStatus(null);
           setToast({ message: "Prestasi berhasil disimpan", type: "success" });
-          // Update optimistic item with final image URL
           if (finalImage !== newItem.image) {
             setPrestasi((s) =>
               s.map((x) =>
@@ -120,8 +152,6 @@ export default function AdminPrestasi() {
           }
         }
       } catch (e) {
-        console.error("insertPrestasi exception", e);
-        setStatus("Exception saat menyimpan: " + String(e));
         setToast({
           message: `Exception saat menyimpan: ${String(e)}`,
           type: "error",
@@ -133,25 +163,32 @@ export default function AdminPrestasi() {
     })();
   };
 
+  // ── edit ─────────────────────────────────────────────────────────
   const startEdit = (p: Prestasi) => {
     setEditingId(p.id);
     setTitle(p.title || "");
-    setYear(p.year || "");
+    setPlace(p.place || "");
     setImage(p.image || "");
     setNewImageFile(null);
+    setMembers(
+      p.members && p.members.length > 0
+        ? p.members.map((m) => ({ ...m }))
+        : [{ ...EMPTY_MEMBER }],
+    );
     setIsModalOpen(true);
   };
 
   const saveEdit = async () => {
     if (!editingId) return;
+    const validMembers = members.filter((m) => m.name.trim());
     let finalImage = image;
     setIsProcessing(true);
+
     try {
       if (newImageFile) {
         setStatus("Mengunggah gambar...");
         const up = await uploadPrestasiImage(newImageFile);
         if (up.error) {
-          console.error("uploadPrestasiImage error", up.error);
           setToast({
             message: `Gagal mengunggah gambar: ${String(up.error)}`,
             type: "error",
@@ -163,65 +200,53 @@ export default function AdminPrestasi() {
       }
 
       setStatus("Menyimpan perubahan...");
-      const { data, error } = await updatePrestasi(editingId, {
+      const { error } = await updatePrestasi(editingId, {
         title,
-        year,
+        place,
         image: finalImage,
+        members: validMembers,
       });
+
       if (error) {
-        console.error("updatePrestasi error", error);
         setToast({
           message: `Gagal menyimpan perubahan: ${String(error)}`,
           type: "error",
         });
       } else {
         setToast({ message: "Perubahan prestasi disimpan", type: "success" });
-        // optimistic update locally
         setPrestasi((s) =>
           s.map((x) =>
-            x.id === editingId ? { ...x, title, year, image: finalImage } : x,
+            x.id === editingId
+              ? { ...x, title, place, image: finalImage, members: validMembers }
+              : x,
           ),
         );
       }
     } catch (e) {
-      console.error("saveEdit exception", e);
       setToast({
         message: `Gagal menyimpan perubahan: ${String(e)}`,
         type: "error",
       });
     } finally {
-      setEditingId(null);
-      setNewImageFile(null);
-      setImage("");
-      setTitle("");
-      setYear("");
       setIsModalOpen(false);
+      resetForm();
       setIsProcessing(false);
     }
   };
 
-  const onImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const previewUrl = URL.createObjectURL(file);
-    setImage(previewUrl);
-    setNewImageFile(file);
-  };
-
+  // ── delete ───────────────────────────────────────────────────────
   const remove = (id: string) =>
     setPrestasi((s) => s.filter((x) => x.id !== id));
 
   const removeRemote = (id: string) => {
     setIsProcessing(true);
     (async () => {
-      const { data, error } = await deletePrestasi(id);
+      const { error } = await deletePrestasi(id);
       if (error) {
-        console.error("deletePrestasi error", error);
         setToast({
           message: `Hapus prestasi gagal: ${String(error)}`,
           type: "error",
         });
-        // revert: re-add item (we can't easily, but at least notify)
       } else {
         setToast({ message: "Prestasi berhasil dihapus", type: "success" });
       }
@@ -229,6 +254,7 @@ export default function AdminPrestasi() {
     })();
   };
 
+  // ── fetch on mount ───────────────────────────────────────────────
   useEffect(() => {
     (async () => {
       try {
@@ -236,21 +262,29 @@ export default function AdminPrestasi() {
         if (!error && data && data.length > 0) {
           const mapped = data.map((d: any) => ({
             id: d.id?.toString() || Date.now().toString(),
-            title: d.title,
-            year: d.year,
-            image: d.image,
+            title: d.title || "",
+            place: d.place || "",
+            image: d.image || "",
+            members: Array.isArray(d.members) ? d.members : [],
           }));
           setPrestasi(mapped);
         }
-      } catch (e) {
+      } catch {
         // ignore
       }
     })();
   }, []);
 
+  const filtered = prestasi.filter(
+    (p) =>
+      p.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      p.place.toLowerCase().includes(searchQuery.toLowerCase()),
+  );
+
   return (
     <section className="py-12">
       <LoadingOverlay isLoading={isProcessing} message="Memproses prestasi..." />
+
       <div className="flex items-center justify-between mb-4">
         <h1 className="text-2xl font-extrabold">Daftar Prestasi</h1>
         <MotionButton
@@ -266,18 +300,14 @@ export default function AdminPrestasi() {
           type="text"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder="Cari prestasi berdasarkan judul..."
+          placeholder="Cari prestasi berdasarkan judul atau peringkat..."
           className="w-full border border-gray-300 px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-black/20"
         />
       </div>
 
       <div className="bg-white rounded shadow overflow-hidden">
         <ul>
-          {prestasi
-            .filter((p) =>
-              p.title.toLowerCase().includes(searchQuery.toLowerCase())
-            )
-            .map((p) => (
+          {filtered.map((p) => (
             <li
               key={p.id}
               className="flex items-center justify-between p-3 border-t"
@@ -287,17 +317,27 @@ export default function AdminPrestasi() {
                   <img
                     src={p.image}
                     alt={p.title}
-                    className="w-12 h-12 rounded object-cover border"
+                    className="w-14 h-14 rounded object-cover border flex-shrink-0"
                   />
                 ) : (
-                  <div className="w-12 h-12 rounded bg-gray-200 border" />
+                  <div className="w-14 h-14 rounded bg-gray-200 border flex-shrink-0" />
                 )}
 
                 <div>
                   <div className="font-semibold">{p.title}</div>
-                  <div className="text-sm text-gray-500">{p.year}</div>
+                  {p.place && (
+                    <div className="text-sm text-teal-600 font-medium">
+                      {p.place}
+                    </div>
+                  )}
+                  {p.members && p.members.length > 0 && (
+                    <div className="text-xs text-gray-500 mt-0.5">
+                      {p.members.map((m) => m.name).join(", ")}
+                    </div>
+                  )}
                 </div>
               </div>
+
               <div className="flex items-center gap-3">
                 <MotionButton
                   onClick={() => startEdit(p)}
@@ -314,6 +354,12 @@ export default function AdminPrestasi() {
               </div>
             </li>
           ))}
+
+          {filtered.length === 0 && (
+            <li className="p-6 text-center text-gray-400 text-sm">
+              Belum ada prestasi.
+            </li>
+          )}
         </ul>
       </div>
 
@@ -333,40 +379,116 @@ export default function AdminPrestasi() {
         />
       )}
 
+      {/* ── Add / Edit Modal ───────────────────────────────────── */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="w-full max-w-md rounded-lg bg-white p-4 shadow-lg">
+          <div className="w-full max-w-lg rounded-lg bg-white p-5 shadow-lg overflow-y-auto max-h-[90vh]">
             <h2 className="text-lg font-bold mb-4">
               {editingId ? "Edit Prestasi" : "Tambah Prestasi"}
             </h2>
 
             <div className="space-y-3">
-              <input
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder="Judul Prestasi"
-                className="w-full border px-3 py-2 rounded"
-              />
-              <input
-                value={year}
-                onChange={(e) => setYear(e.target.value)}
-                placeholder="Tahun"
-                className="w-full border px-3 py-2 rounded"
-              />
-              <input
-                type="file"
-                accept="image/*"
-                onChange={onImageChange}
-                className="w-full border px-3 py-2 rounded"
-              />
-
-              {image && (
-                <img
-                  src={image}
-                  alt="Preview"
-                  className="w-20 h-20 rounded object-cover border"
+              {/* Nama kejuaraan */}
+              <div>
+                <label className="block text-sm font-medium mb-1">
+                  Nama Kejuaraan
+                </label>
+                <input
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  placeholder="Contoh: International Competition of Accounting"
+                  className="w-full border px-3 py-2 rounded"
                 />
-              )}
+              </div>
+
+              {/* Peringkat */}
+              <div>
+                <label className="block text-sm font-medium mb-1">
+                  Peringkat
+                </label>
+                <input
+                  value={place}
+                  onChange={(e) => setPlace(e.target.value)}
+                  placeholder="Contoh: 1st Place, Juara 2, Finalis"
+                  className="w-full border px-3 py-2 rounded"
+                />
+              </div>
+
+              {/* Foto */}
+              <div>
+                <label className="block text-sm font-medium mb-1">
+                  Foto Dokumentasi
+                </label>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={onImageChange}
+                  className="w-full border px-3 py-2 rounded text-sm"
+                />
+                {image && (
+                  <img
+                    src={image}
+                    alt="Preview"
+                    className="mt-2 w-full h-40 rounded object-cover border"
+                  />
+                )}
+              </div>
+
+              {/* Anggota */}
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-sm font-medium">
+                    Anggota yang Memenangkan{" "}
+                    <span className="text-gray-400 font-normal">
+                      (maks. 3)
+                    </span>
+                  </label>
+                  {members.length < 3 && (
+                    <button
+                      type="button"
+                      onClick={addMemberRow}
+                      className="text-xs text-teal-600 hover:underline"
+                    >
+                      + Tambah anggota
+                    </button>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  {members.map((m, idx) => (
+                    <div key={idx} className="flex gap-2 items-start">
+                      <div className="flex-1 space-y-1">
+                        <input
+                          value={m.name}
+                          onChange={(e) =>
+                            updateMemberField(idx, "name", e.target.value)
+                          }
+                          placeholder={`Nama anggota ${idx + 1}`}
+                          className="w-full border px-3 py-1.5 rounded text-sm"
+                        />
+                        <input
+                          value={m.role}
+                          onChange={(e) =>
+                            updateMemberField(idx, "role", e.target.value)
+                          }
+                          placeholder="Jabatan / divisi"
+                          className="w-full border px-3 py-1.5 rounded text-sm"
+                        />
+                      </div>
+                      {members.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => removeMemberRow(idx)}
+                          className="text-red-400 hover:text-red-600 mt-1 text-lg leading-none"
+                          aria-label="Hapus anggota"
+                        >
+                          ×
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
 
             <div className="mt-5 flex justify-end gap-2">
@@ -396,7 +518,7 @@ export default function AdminPrestasi() {
         </div>
       )}
 
-      {/* delete confirmation modal */}
+      {/* ── Delete Confirmation ─────────────────────────────────── */}
       {deleteTarget && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
           <div className="w-full max-w-sm rounded-lg bg-white p-4 shadow-lg">
@@ -414,7 +536,6 @@ export default function AdminPrestasi() {
               </MotionButton>
               <MotionButton
                 onClick={() => {
-                  // optimistic remove locally, then call server
                   remove(deleteTarget!);
                   removeRemote(deleteTarget!);
                   setDeleteTarget(null);

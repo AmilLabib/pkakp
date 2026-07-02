@@ -137,15 +137,17 @@ export async function deleteArticle(id: string) {
 
 export async function insertPrestasi(payload: {
   title: string;
-  year: string;
+  place?: string;
   image?: string;
+  members?: { name: string; role: string }[];
 }) {
   try {
     const { data, error } = await supabase.from("prestasi").insert([
       {
         title: payload.title,
-        year: payload.year,
+        place: payload.place || "",
         image: payload.image || "",
+        members: payload.members ?? [],
       },
     ]);
     return { data, error };
@@ -176,15 +178,16 @@ export async function deletePrestasi(id: string) {
 
 export async function updatePrestasi(
   id: string,
-  payload: { title?: string; year?: string; image?: string },
+  payload: { title?: string; place?: string; image?: string; members?: { name: string; role: string }[] },
 ) {
   try {
     const { data, error } = await supabase
       .from("prestasi")
       .update({
         ...(payload.title !== undefined ? { title: payload.title } : {}),
-        ...(payload.year !== undefined ? { year: payload.year } : {}),
+        ...(payload.place !== undefined ? { place: payload.place } : {}),
         ...(payload.image !== undefined ? { image: payload.image } : {}),
+        ...(payload.members !== undefined ? { members: payload.members } : {}),
       })
       .match({ id });
     return { data, error };
